@@ -23,7 +23,8 @@ import {
   Maximize,
   Minimize,
   Library,
-  ExternalLink
+  ExternalLink,
+  FolderOpen
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
@@ -43,7 +44,7 @@ function useLocalStorage(key, initialValue) {
   return [value, setValue];
 }
 
-// --- SIMULATED AI MENTOR BRAIN ---
+// --- SIMULATED AI MENTOR BRAIN (For Auto-triggers) ---
 const generateMentorResponse = (trigger, context = {}, userMessage = '') => {
   const { hoursToday = 0, targetHours = 10, daysLeft = 0, streak = 0, escalation = 0 } = context;
 
@@ -51,30 +52,24 @@ const generateMentorResponse = (trigger, context = {}, userMessage = '') => {
     check_in: [
       '2 ghante ho gaye. What have you completed? Give me a quick update.',
       'Are you on track today? Syllabus wait nahi karega.',
-      `You need ${targetHours} hours today. Abhi sirf ${Number(hoursToday).toFixed(1)} hue hain. Speed up.`,
     ],
     missed_target: [
       'You planned target hours and completed barely anything. This is not acceptable.',
-      'Be honest — are you serious about clearing CA? Kyunki yeh output se toh nahi hoga.',
       `Exam me sirf ${daysLeft} days bache hain aur tumhara yeh haal hai. Wake up!`,
     ],
     good_session: [
       "Good focus. But don't get comfortable. Take your break.",
       "That's how a CA student studies. Keep this momentum going.",
-      "Target hit for this block. Take a quick break. Don't extend it.",
     ],
     streak_break: [
       'Streak broken. This is exactly how attempts are lost. Back to zero.',
-      'You broke your consistency. Do you realize the compounding effect of missed days?',
     ],
     urgency_90_plus: "You have time. Build strong concepts. But don't waste days.",
     urgency_30_to_90: 'Now consistency matters. No more delays. Every single day counts.',
     urgency_less_30: 'Final phase. Every hour counts. Drop everything else and focus.',
     urgency_less_10: 'No excuses. Full revision mode. Do or die.',
     general_chat: [
-      'Stop finding excuses. If you waste time, you waste an attempt.',
       "CA doesn't care about your mood. It cares about discipline.",
-      'Are you prioritizing your weak subjects or just reading what feels easy?',
       'Stop scrolling. Go back to your books.',
     ],
   };
@@ -88,13 +83,10 @@ const generateMentorResponse = (trigger, context = {}, userMessage = '') => {
 
   if (responses[trigger]) {
     const opts = responses[trigger];
-    if (escalation >= 2 && trigger === 'missed_target') {
-      return 'I am warning you. If you continue this behavior, you are going to fail. Change your attitude right now.';
-    }
+    if (escalation >= 2 && trigger === 'missed_target') return 'Warning: If you continue this behavior, you are going to fail. Change your attitude right now.';
     return opts[Math.floor(Math.random() * opts.length)];
   }
-
-  return responses.general_chat[Math.floor(Math.random() * responses.general_chat.length)];
+  return responses.general_chat[0];
 };
 
 export default function CASathiApp() {
@@ -127,7 +119,7 @@ export default function CASathiApp() {
 
   const [tasks, setTasks] = useLocalStorage('ca-tasks', []);
   const [chatHistory, setChatHistory] = useLocalStorage('ca-chat', [
-    { sender: 'mentor', text: "Welcome to CA Sathi. Set your exam date on the dashboard. Let's get to work.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+    { sender: 'mentor', text: "Hello! I am your AI Mentor. You can ask me CA Final subject doubts (FR, Audit, DT, etc.), ask for daily planning, or just talk to me if you are stressed. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
   ]);
   const [chatInput, setChatInput] = React.useState('');
   
@@ -220,6 +212,7 @@ export default function CASathiApp() {
     setChatHistory((prev) => [...prev, { sender, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
   };
 
+  // --- UPGRADED AI MENTOR API LOGIC ---
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   const handleChatSubmit = async (e) => {
     e.preventDefault();
@@ -229,9 +222,27 @@ export default function CASathiApp() {
     setChatInput('');
     addMentorMessage('...', 'mentor');
 
-    const prompt = `You are 'Sathi,' a CA Mentor. Tone is Hinglish. Be Strict if goals missed, Supportive if stressed.
-      Context: Exam in ${daysLeft} days. Target: ${targetHours}h. Completed: ${hoursStudiedToday}h. Streak: ${streak}.
-      Student says: "${userText}"`;
+    const prompt = `
+    You are 'Sathi,' an elite CA Mentor and an all-rounder expert in Finance, Audit, Taxation, and the entire CA Final curriculum. Your tone is professional Hinglish (a natural mix of Hindi and English), acting like a highly knowledgeable, empathetic, and supportive big brother from the 'Audit Cubicles' brand.
+    
+    Your Core Capabilities:
+    1. SUBJECT EXPERT: Answer technical and subjective doubts perfectly for subjects like FR, AFM, Audit, DT, IDT, and IBS. Explain concepts clearly with practical examples and section references if needed.
+    2. STRATEGIST & PLANNER: Help students plan their day, create revision strategies, optimize their timetables, and guide them on how to approach specific subjects.
+    3. MOTIVATOR: Be deeply empathetic and supportive when they are stressed or burnt out. Remind them of their potential. However, use 'tough love' if they are making silly excuses.
+
+    Live Context of the Student:
+    - Exam is in ${daysLeft} days.
+    - Target today: ${targetHours} hours.
+    - Completed today: ${hoursStudiedToday} hours.
+    - Current streak: ${streak} days.
+    
+    Rules for response: 
+    - Give highly practical, actionable CA-specific advice. 
+    - Format your answers nicely using short paragraphs or bullet points for readability.
+    - Never break character. Never state that you are an AI.
+    
+    Student says: "${userText}"
+    `;
 
     try {
       const response = await fetch(
@@ -249,7 +260,7 @@ export default function CASathiApp() {
     } catch (error) {
       setChatHistory((prev) => {
         const newHistory = [...prev];
-        newHistory[newHistory.length - 1] = { sender: 'mentor', text: `SYSTEM ERROR: API issue.`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        newHistory[newHistory.length - 1] = { sender: 'mentor', text: `SYSTEM ERROR: Unable to connect to the brain. Check your API Key.`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
         return newHistory;
       });
     }
@@ -353,28 +364,29 @@ export default function CASathiApp() {
     </div>
   );
 
+  // --- UPGRADED AI MENTOR UI ---
   const renderMentor = () => (
     <div className={`flex flex-col h-[calc(100vh-8rem)] ${theme.cardSolid} rounded-xl overflow-hidden`}>
       <div className={`p-4 ${isLightMode ? 'bg-gray-100 border-b border-gray-200' : 'bg-gray-800 border-b border-gray-700'} flex items-center justify-between`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center border border-red-500/30 text-red-500"><BrainCircuit size={20} /></div>
-          <div><h3 className="font-bold">AI Mentor (Strict Mode)</h3><p className="text-xs text-red-500 font-mono tracking-wider">STATUS: WATCHING YOU</p></div>
+          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center border border-blue-500/30 text-blue-500"><BrainCircuit size={20} /></div>
+          <div><h3 className="font-bold">Expert AI Mentor</h3><p className={`text-xs ${theme.textMuted} font-mono tracking-wider`}>Finance, Strategy & Support</p></div>
         </div>
         <div className={`text-xs ${theme.textMuted} font-mono`}>Escalation Lvl: {escalationLevel}</div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {chatHistory.map((msg, i) => (
           <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-3 rounded-lg text-sm ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : (isLightMode ? 'bg-white border border-gray-200 rounded-bl-none text-slate-800' : 'bg-gray-800 border border-gray-700 text-gray-200 rounded-bl-none')}`}>
-              <div className="mb-1 leading-relaxed font-medium">{msg.text}</div>
-              <div className="text-[10px] text-right opacity-60">{msg.time}</div>
+            <div className={`max-w-[85%] p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : (isLightMode ? 'bg-white border border-gray-200 rounded-bl-none text-slate-800 shadow-sm' : 'bg-gray-800 border border-gray-700 text-gray-200 rounded-bl-none shadow-sm')}`}>
+              {msg.text}
+              <div className="text-[10px] text-right opacity-50 mt-2">{msg.time}</div>
             </div>
           </div>
         ))}
       </div>
       <form onSubmit={handleChatSubmit} className={`p-4 ${isLightMode ? 'bg-gray-100 border-t border-gray-200' : 'bg-gray-800 border-t border-gray-700'} flex gap-2`}>
-        <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Update your mentor or ask a doubt..." className={`flex-1 ${theme.input} rounded-lg px-4 py-2 text-sm outline-none`} />
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors"><Send size={20} /></button>
+        <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask an Audit doubt, request a timetable, or get advice..." className={`flex-1 ${theme.input} rounded-xl px-4 py-3 text-sm outline-none`} />
+        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-xl transition-colors font-bold"><Send size={20} /></button>
       </form>
     </div>
   );
@@ -499,6 +511,70 @@ export default function CASathiApp() {
     </div>
   );
 
+  const renderPastPapers = () => {
+    const papers = [
+      { name: 'Financial Reporting (FR)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=UeoGTdCOXR9vcXrH2Ixm0zA-5qpL43ovTx6iamI8bPw=/index=HjR8OI_C92vfg2wkAKIEVBKwp0dEP3hrT8uAcW2pUOY=', icon: '📊', border: 'border-blue-500/30 hover:border-blue-500' },
+      { name: 'Advanced Financial Management', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=nzKn-ijbXOsXihFYuZuZ6-yR3O7rz5s5pFDwc0kFWXg=/index=rAymKoVQaLKzGCWL_i2PP4gzLRaKgE_1Nu8iB3d8HXo=', icon: '📈', border: 'border-green-500/30 hover:border-green-500' },
+      { name: 'Audit & Assurance', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=N8Irnu1rh71zD1hw5b1Iho579hPZG2TfcYxL3kAtmow=/index=LYlBZAJ5rzMMo-bLpeEC1z1Vu6hvFQgciswiJZR5N0I=', icon: '🔍', border: 'border-purple-500/30 hover:border-purple-500' },
+      { name: 'Direct Taxes (DT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=8y5m11WZYYQ61D94xGPF2eEcUme4g3cQivnx_Ia1v6Q=/index=diFiR7ZcZzLCkOruyZs6TF7eiQTTgt4-ZY8KPrGPalg=', icon: '💰', border: 'border-orange-500/30 hover:border-orange-500' },
+      { name: 'Indirect Taxes (IDT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=yiC0c50Q_LZATuRNxhKGY-vVnCmb35XHX1qJLUCg6rg=/index=V6rijQR0M1NyCnUmIud0qmSbfUsoWPbhBF1vaGYvLZo=', icon: '🏛️', border: 'border-red-500/30 hover:border-red-500' },
+      { name: 'Integrated Business Solutions', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=Wk2SeRfZ_3nIE7JER5YukXWCQAyOPdluvJ-t2L8hLSg=/index=NE6rAQ9isAAETZPXslGFhxfzuWG3zDWGYzylSlJwxNI=', icon: '💼', border: 'border-indigo-500/30 hover:border-indigo-500' },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Past Papers, RTPs & MTPs</h2>
+          <p className={`${theme.textMuted} text-sm`}>Access subject-wise question banks, mock tests, and revision papers directly.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {papers.map((paper, index) => (
+            <a key={index} href={paper.link} target="_blank" rel="noopener noreferrer" className={`${theme.cardSolid} p-6 rounded-2xl border-2 transition-all transform hover:-translate-y-1 hover:shadow-lg ${paper.border} flex flex-col items-center text-center gap-3`}>
+              <div className="text-4xl mb-2 drop-shadow-md">{paper.icon}</div>
+              <h3 className={`font-bold text-lg leading-tight ${theme.text}`}>{paper.name}</h3>
+              <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLightMode ? 'bg-slate-100 text-slate-600' : 'bg-gray-800 text-gray-300'}`}>
+                Open Bank <ExternalLink size={14} />
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // --- NEW: FACULTY NOTES VAULT ---
+  const renderFacultyNotes = () => {
+    const notes = [
+      { name: 'Financial Reporting (FR)', link: 'https://drive.google.com/drive/folders/16gN9MHrV7l9VHFFOaIrTz0IC7dl4GHIx', icon: '📘', border: 'border-blue-500/30 hover:border-blue-500' },
+      { name: 'Advanced Financial Management', link: 'https://drive.google.com/drive/folders/1xIYTwL3RLmC7ELMrZKky_Q1kdico9VqD', icon: '📗', border: 'border-green-500/30 hover:border-green-500' },
+      { name: 'Audit & Assurance', link: 'https://drive.google.com/drive/folders/1VTFcIFznC7zpWVAWlDgY9x9NtEheBzlI', icon: '📙', border: 'border-purple-500/30 hover:border-purple-500' },
+      { name: 'Direct Taxes (DT)', link: 'https://drive.google.com/drive/folders/1j5o0WKVNtD7CxMNIrgznjfQnI4CYdheu', icon: '📕', border: 'border-orange-500/30 hover:border-orange-500' },
+      { name: 'Indirect Taxes (IDT)', link: 'https://drive.google.com/drive/folders/1Z3JYyTSpRf04QhE26sdnzkxa7qEizfDT', icon: '📓', border: 'border-red-500/30 hover:border-red-500' },
+      { name: 'Integrated Business Solutions', link: 'https://drive.google.com/drive/folders/1KXTo6pobu7QKhC0TP7--g98quUFJn4rZ', icon: '📒', border: 'border-indigo-500/30 hover:border-indigo-500' },
+      { name: 'SPOM', link: 'https://drive.google.com/drive/folders/1bzhLGBWUn2i_A6BoprToW-S8Majk29BV', icon: '💻', border: 'border-cyan-500/30 hover:border-cyan-500' },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Subject Wise Faculty Notes</h2>
+          <p className={`${theme.textMuted} text-sm`}>Access comprehensive study materials, summary charts, and notes of top CA faculties.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {notes.map((note, index) => (
+            <a key={index} href={note.link} target="_blank" rel="noopener noreferrer" className={`${theme.cardSolid} p-6 rounded-2xl border-2 transition-all transform hover:-translate-y-1 hover:shadow-lg ${note.border} flex flex-col items-center text-center gap-3`}>
+              <div className="text-4xl mb-2 drop-shadow-md">{note.icon}</div>
+              <h3 className={`font-bold text-lg leading-tight ${theme.text}`}>{note.name}</h3>
+              <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLightMode ? 'bg-slate-100 text-slate-600' : 'bg-gray-800 text-gray-300'}`}>
+                Open Drive <FolderOpen size={14} />
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderQuickNotes = () => (
     <div className="space-y-6 overflow-y-auto max-h-[75vh] p-2 text-left">
       <div className={`p-6 ${theme.cardSolid} rounded-3xl shadow-xl`}>
@@ -518,62 +594,6 @@ export default function CASathiApp() {
       </div>
     </div>
   );
-
-  const renderActiveRecall = () => (
-    <div className={`h-[60vh] flex flex-col items-center justify-center py-10 text-center rounded-3xl border-2 border-dashed border-purple-500/30 ${isLightMode ? 'bg-purple-50/50' : 'bg-slate-900/40'}`}>
-      <div className={`w-20 h-20 rounded-full flex items-center justify-center border border-purple-500/40 mb-6 shadow-[0_0_20px_rgba(147,51,234,0.3)] ${isLightMode ? 'bg-white' : 'bg-gray-900'}`}>
-        <span className="text-4xl animate-bounce">🚀</span>
-      </div>
-      <h2 className="text-2xl font-bold mb-3 uppercase tracking-wide">Active Recall Engine</h2>
-      <p className={`text-base max-w-[350px] mx-auto font-light leading-relaxed ${theme.textMuted}`}>
-        AI-driven conceptual testing and MCQ analysis are currently under development. 
-        <br/><br/>
-        Follow <span className="text-purple-500 font-semibold italic border-b border-purple-400/50 pb-0.5">Audit Cubicles</span> for the official release.
-      </p>
-    </div>
-  );
-
-  // --- NEW: PAST PAPERS & MTPs ---
-  const renderPastPapers = () => {
-    const papers = [
-      { name: 'Financial Reporting (FR)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=UeoGTdCOXR9vcXrH2Ixm0zA-5qpL43ovTx6iamI8bPw=/index=HjR8OI_C92vfg2wkAKIEVBKwp0dEP3hrT8uAcW2pUOY=', icon: '📊', border: 'border-blue-500/30 hover:border-blue-500' },
-      { name: 'Advanced Financial Management', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=nzKn-ijbXOsXihFYuZuZ6-yR3O7rz5s5pFDwc0kFWXg=/index=rAymKoVQaLKzGCWL_i2PP4gzLRaKgE_1Nu8iB3d8HXo=', icon: '📈', border: 'border-green-500/30 hover:border-green-500' },
-      { name: 'Audit & Assurance', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=N8Irnu1rh71zD1hw5b1Iho579hPZG2TfcYxL3kAtmow=/index=LYlBZAJ5rzMMo-bLpeEC1z1Vu6hvFQgciswiJZR5N0I=', icon: '🔍', border: 'border-purple-500/30 hover:border-purple-500' },
-      { name: 'Direct Taxes (DT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=8y5m11WZYYQ61D94xGPF2eEcUme4g3cQivnx_Ia1v6Q=/index=diFiR7ZcZzLCkOruyZs6TF7eiQTTgt4-ZY8KPrGPalg=', icon: '💰', border: 'border-orange-500/30 hover:border-orange-500' },
-      { name: 'Indirect Taxes (IDT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=yiC0c50Q_LZATuRNxhKGY-vVnCmb35XHX1qJLUCg6rg=/index=V6rijQR0M1NyCnUmIud0qmSbfUsoWPbhBF1vaGYvLZo=', icon: '🏛️', border: 'border-red-500/30 hover:border-red-500' },
-      { name: 'Integrated Business Solutions', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=Wk2SeRfZ_3nIE7JER5YukXWCQAyOPdluvJ-t2L8hLSg=/index=NE6rAQ9isAAETZPXslGFhxfzuWG3zDWGYzylSlJwxNI=', icon: '💼', border: 'border-indigo-500/30 hover:border-indigo-500' },
-    ];
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Past Papers, RTPs & MTPs</h2>
-          <p className={`${theme.textMuted} text-sm`}>
-            Access subject-wise question banks, mock tests, and revision papers directly.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {papers.map((paper, index) => (
-            <a
-              key={index}
-              href={paper.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${theme.cardSolid} p-6 rounded-2xl border-2 transition-all transform hover:-translate-y-1 hover:shadow-lg ${paper.border} flex flex-col items-center text-center gap-3`}
-            >
-              <div className="text-4xl mb-2 drop-shadow-md">
-                {paper.icon}
-              </div>
-              <h3 className={`font-bold text-lg leading-tight ${theme.text}`}>{paper.name}</h3>
-              <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLightMode ? 'bg-slate-100 text-slate-600' : 'bg-gray-800 text-gray-300'}`}>
-                Open Bank <ExternalLink size={14} />
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   // --- MAIN UI RENDER ---
   return (
@@ -598,10 +618,10 @@ export default function CASathiApp() {
             { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20} /> },
             { id: 'planner', name: 'Study Planner', icon: <Calendar size={20} /> },
             { id: 'timer', name: 'Focus Timer', icon: <TimerIcon size={20} /> },
+            { id: 'faculty_notes', name: 'Faculty Notes', icon: <FolderOpen size={20} /> },
             { id: 'past_papers', name: 'Past Papers & MTPs', icon: <Library size={20} /> },
             { id: 'quick_notes', name: 'Quick Notes', icon: <FileText size={20} /> },
-            { id: 'active_recall', name: 'Active Recall', icon: <BookOpen size={20} /> },
-            { id: 'mentor', name: 'Mentor Chat', icon: <MessageSquare size={20} /> },
+            { id: 'mentor', name: 'Expert CA Mentor', icon: <BrainCircuit size={20} /> },
           ].map((item) => (
             <button
               key={item.id}
@@ -634,9 +654,9 @@ export default function CASathiApp() {
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'planner' && renderPlanner()}
           {activeTab === 'timer' && renderTimer()}
+          {activeTab === 'faculty_notes' && renderFacultyNotes()}
           {activeTab === 'past_papers' && renderPastPapers()}
           {activeTab === 'quick_notes' && renderQuickNotes()}
-          {activeTab === 'active_recall' && renderActiveRecall()}
           {activeTab === 'mentor' && renderMentor()}
         </div>
       </main>
