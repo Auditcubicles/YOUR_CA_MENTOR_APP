@@ -21,7 +21,9 @@ import {
   Sun,
   Moon,
   Maximize,
-  Minimize
+  Minimize,
+  Library,
+  ExternalLink
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
@@ -99,7 +101,6 @@ export default function CASathiApp() {
   // --- THEME STATE ---
   const [isLightMode, setIsLightMode] = useLocalStorage('ca-theme-light', false);
 
-  // Dynamic Theme Classes
   const theme = {
     bg: isLightMode ? 'bg-slate-50' : 'bg-[#0a0f1c]',
     text: isLightMode ? 'text-slate-900' : 'text-slate-200',
@@ -114,7 +115,6 @@ export default function CASathiApp() {
 
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = React.useState('dashboard');
-
   const [examDate, setExamDate] = useLocalStorage('ca-examDate', '');
   const [targetHours, setTargetHours] = useLocalStorage('ca-targetHours', 10);
   const [hoursStudiedToday, setHoursStudiedToday] = useLocalStorage('ca-hoursToday', 0);
@@ -123,22 +123,14 @@ export default function CASathiApp() {
 
   const rawDaysLeft = examDate ? Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
   const daysLeft = Math.max(1, rawDaysLeft);
-  const reqDailyHours = hoursStudiedToday < targetHours
-    ? (targetHours + (targetHours - hoursStudiedToday) / daysLeft).toFixed(1)
-    : targetHours;
+  const reqDailyHours = hoursStudiedToday < targetHours ? (targetHours + (targetHours - hoursStudiedToday) / daysLeft).toFixed(1) : targetHours;
 
   const [tasks, setTasks] = useLocalStorage('ca-tasks', []);
-
   const [chatHistory, setChatHistory] = useLocalStorage('ca-chat', [
-    {
-      sender: 'mentor',
-      text: "Welcome to CA Sathi. Set your target exam date on the dashboard so I can calculate your required daily pace. Let's get to work.",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
+    { sender: 'mentor', text: "Welcome to CA Sathi. Set your exam date on the dashboard. Let's get to work.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
   ]);
   const [chatInput, setChatInput] = React.useState('');
   
-  // --- CUSTOM TIMER STATE ---
   const [workDuration, setWorkDuration] = useLocalStorage('ca-work-duration', 50);
   const [breakDuration, setBreakDuration] = useLocalStorage('ca-break-duration', 10);
   const [timerMode, setTimerMode] = useState('pomodoro');
@@ -146,26 +138,20 @@ export default function CASathiApp() {
   const [isActive, setIsActive] = useState(false);
   const [showSessionLog, setShowSessionLog] = useState(false);
   
-  // Fullscreen State & Ref
   const timerRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
-
   const [showAddTaskModal, setShowAddTaskModal] = React.useState(false);
-  const [newTask, setNewTask] = React.useState({
-    subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning',
-  });
+  const [newTask, setNewTask] = React.useState({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
 
   // --- LOGIC FUNCTIONS ---
   const handleAddTask = (e) => {
     e.preventDefault();
     if (!newTask.subject || !newTask.topic) return;
-    const taskToAdd = { ...newTask, id: Date.now(), status: 'pending' };
-    setTasks([...tasks, taskToAdd]);
+    setTasks([...tasks, { ...newTask, id: Date.now(), status: 'pending' }]);
     setShowAddTaskModal(false);
     setNewTask({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
   };
 
-  // Timer Countdown
   useEffect(() => {
     let interval = null;
     if (isActive && timeLeft > 0) {
@@ -177,7 +163,6 @@ export default function CASathiApp() {
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
 
-  // Fullscreen Listener
   useEffect(() => {
     const handleFsChange = () => setIsFullScreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handleFsChange);
@@ -185,11 +170,8 @@ export default function CASathiApp() {
   }, []);
 
   const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      timerRef.current?.requestFullscreen().catch(err => console.log(err));
-    } else {
-      document.exitFullscreen();
-    }
+    if (!document.fullscreenElement) { timerRef.current?.requestFullscreen().catch(err => console.log(err)); } 
+    else { document.exitFullscreen(); }
   };
 
   const handleWorkTimeChange = (e) => {
@@ -207,7 +189,7 @@ export default function CASathiApp() {
   const handleSessionComplete = () => {
     if (timerMode === 'pomodoro') {
       setShowSessionLog(true);
-      if (document.fullscreenElement) document.exitFullscreen(); // Exit FS to show log
+      if (document.fullscreenElement) document.exitFullscreen(); 
     } else {
       setTimerMode('pomodoro');
       setTimeLeft(workDuration * 60);
@@ -226,7 +208,7 @@ export default function CASathiApp() {
       setIsActive(true);
     } else if (status === 'partial') {
       setHoursStudiedToday((prev) => prev + ((workDuration/2) / 60));
-      addMentorMessage('Partial completion is just a polite word for procrastination. Why did you stop?');
+      addMentorMessage('Partial completion is just procrastination. Why did you stop?');
       setEscalationLevel((prev) => prev + 1);
     } else {
       addMentorMessage(generateMentorResponse('missed_target', { hoursToday: hoursStudiedToday, targetHours, daysLeft, streak, escalation: escalationLevel }));
@@ -235,45 +217,29 @@ export default function CASathiApp() {
   };
 
   const addMentorMessage = (text, sender = 'mentor') => {
-    setChatHistory((prev) => [
-      ...prev,
-      { sender, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-    ]);
+    setChatHistory((prev) => [...prev, { sender, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
   };
 
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-
     const userText = chatInput;
     addMentorMessage(userText, 'user');
     setChatInput('');
     addMentorMessage('...', 'mentor');
 
-    const prompt = `
-    You are 'Sathi,' a balanced CA Mentor. Your tone is Hinglish. You are Strict when the user misses goals, but Deeply Supportive and Empathetic when they are stressed.
-      Live Context:
-      - Exam is in ${daysLeft} days.
-      - Target today: ${targetHours} hours.
-      - Completed today: ${hoursStudiedToday} hours.
-      - Current streak: ${streak} days.
-      Rule: Respond in short, punchy Hinglish. Be tough but motivating. Never break character.
-      Student says: "${userText}"
-    `;
+    const prompt = `You are 'Sathi,' a CA Mentor. Tone is Hinglish. Be Strict if goals missed, Supportive if stressed.
+      Context: Exam in ${daysLeft} days. Target: ${targetHours}h. Completed: ${hoursStudiedToday}h. Streak: ${streak}.
+      Student says: "${userText}"`;
 
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        }
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
       );
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
-
       const aiReply = data.candidates[0].content.parts[0].text;
       setChatHistory((prev) => {
         const newHistory = [...prev];
@@ -414,44 +380,23 @@ export default function CASathiApp() {
   );
 
   const renderTimer = () => (
-    <div 
-      ref={timerRef} 
-      className={`h-full flex flex-col items-center justify-center relative transition-all ${isFullScreen ? (isLightMode ? 'bg-slate-50' : 'bg-[#0a0f1c]') : ''}`}
-    >
-      {/* Fullscreen Toggle Button */}
-      <button 
-        onClick={toggleFullScreen} 
-        className={`absolute top-4 right-4 p-2 rounded-lg transition-colors ${isLightMode ? 'text-slate-500 hover:bg-slate-200' : 'text-gray-400 hover:bg-gray-800'}`}
-        title={isFullScreen ? "Exit Fullscreen" : "Go Fullscreen"}
-      >
+    <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all ${isFullScreen ? (isLightMode ? 'bg-slate-50' : 'bg-[#0a0f1c]') : ''}`}>
+      <button onClick={toggleFullScreen} className={`absolute top-4 right-4 p-2 rounded-lg transition-colors ${isLightMode ? 'text-slate-500 hover:bg-slate-200' : 'text-gray-400 hover:bg-gray-800'}`} title={isFullScreen ? "Exit Fullscreen" : "Go Fullscreen"}>
         {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
       </button>
 
       <div className="text-center w-full max-w-md">
-        <h2 className={`text-xl font-bold mb-6 uppercase tracking-widest ${theme.textMuted}`}>
-          {timerMode === 'pomodoro' ? 'Focus Session' : 'Strict Break'}
-        </h2>
-
-        {/* Custom Timer Inputs (Only show when timer is paused) */}
+        <h2 className={`text-xl font-bold mb-6 uppercase tracking-widest ${theme.textMuted}`}>{timerMode === 'pomodoro' ? 'Focus Session' : 'Strict Break'}</h2>
+        
         {!isActive && !isFullScreen && (
           <div className="flex justify-center gap-6 mb-6">
             <div className="flex flex-col items-center">
               <label className={`text-xs mb-1 font-semibold ${theme.textMuted}`}>Work (Min)</label>
-              <input 
-                type="number" 
-                value={workDuration} 
-                onChange={handleWorkTimeChange}
-                className={`w-16 text-center rounded p-1 font-mono ${theme.input}`}
-              />
+              <input type="number" value={workDuration} onChange={handleWorkTimeChange} className={`w-16 text-center rounded p-1 font-mono ${theme.input}`} />
             </div>
             <div className="flex flex-col items-center">
               <label className={`text-xs mb-1 font-semibold ${theme.textMuted}`}>Break (Min)</label>
-              <input 
-                type="number" 
-                value={breakDuration} 
-                onChange={handleBreakTimeChange}
-                className={`w-16 text-center rounded p-1 font-mono ${theme.input}`}
-              />
+              <input type="number" value={breakDuration} onChange={handleBreakTimeChange} className={`w-16 text-center rounded p-1 font-mono ${theme.input}`} />
             </div>
           </div>
         )}
@@ -588,6 +533,48 @@ export default function CASathiApp() {
     </div>
   );
 
+  // --- NEW: PAST PAPERS & MTPs ---
+  const renderPastPapers = () => {
+    const papers = [
+      { name: 'Financial Reporting (FR)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=UeoGTdCOXR9vcXrH2Ixm0zA-5qpL43ovTx6iamI8bPw=/index=HjR8OI_C92vfg2wkAKIEVBKwp0dEP3hrT8uAcW2pUOY=', icon: '📊', border: 'border-blue-500/30 hover:border-blue-500' },
+      { name: 'Advanced Financial Management', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=nzKn-ijbXOsXihFYuZuZ6-yR3O7rz5s5pFDwc0kFWXg=/index=rAymKoVQaLKzGCWL_i2PP4gzLRaKgE_1Nu8iB3d8HXo=', icon: '📈', border: 'border-green-500/30 hover:border-green-500' },
+      { name: 'Audit & Assurance', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=N8Irnu1rh71zD1hw5b1Iho579hPZG2TfcYxL3kAtmow=/index=LYlBZAJ5rzMMo-bLpeEC1z1Vu6hvFQgciswiJZR5N0I=', icon: '🔍', border: 'border-purple-500/30 hover:border-purple-500' },
+      { name: 'Direct Taxes (DT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=8y5m11WZYYQ61D94xGPF2eEcUme4g3cQivnx_Ia1v6Q=/index=diFiR7ZcZzLCkOruyZs6TF7eiQTTgt4-ZY8KPrGPalg=', icon: '💰', border: 'border-orange-500/30 hover:border-orange-500' },
+      { name: 'Indirect Taxes (IDT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=yiC0c50Q_LZATuRNxhKGY-vVnCmb35XHX1qJLUCg6rg=/index=V6rijQR0M1NyCnUmIud0qmSbfUsoWPbhBF1vaGYvLZo=', icon: '🏛️', border: 'border-red-500/30 hover:border-red-500' },
+      { name: 'Integrated Business Solutions', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=Wk2SeRfZ_3nIE7JER5YukXWCQAyOPdluvJ-t2L8hLSg=/index=NE6rAQ9isAAETZPXslGFhxfzuWG3zDWGYzylSlJwxNI=', icon: '💼', border: 'border-indigo-500/30 hover:border-indigo-500' },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Past Papers, RTPs & MTPs</h2>
+          <p className={`${theme.textMuted} text-sm`}>
+            Access subject-wise question banks, mock tests, and revision papers directly.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {papers.map((paper, index) => (
+            <a
+              key={index}
+              href={paper.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${theme.cardSolid} p-6 rounded-2xl border-2 transition-all transform hover:-translate-y-1 hover:shadow-lg ${paper.border} flex flex-col items-center text-center gap-3`}
+            >
+              <div className="text-4xl mb-2 drop-shadow-md">
+                {paper.icon}
+              </div>
+              <h3 className={`font-bold text-lg leading-tight ${theme.text}`}>{paper.name}</h3>
+              <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLightMode ? 'bg-slate-100 text-slate-600' : 'bg-gray-800 text-gray-300'}`}>
+                Open Bank <ExternalLink size={14} />
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // --- MAIN UI RENDER ---
   return (
     <div className={`min-h-screen font-sans flex overflow-hidden transition-colors duration-300 ${theme.bg} ${theme.text}`}>
@@ -611,6 +598,7 @@ export default function CASathiApp() {
             { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20} /> },
             { id: 'planner', name: 'Study Planner', icon: <Calendar size={20} /> },
             { id: 'timer', name: 'Focus Timer', icon: <TimerIcon size={20} /> },
+            { id: 'past_papers', name: 'Past Papers & MTPs', icon: <Library size={20} /> },
             { id: 'quick_notes', name: 'Quick Notes', icon: <FileText size={20} /> },
             { id: 'active_recall', name: 'Active Recall', icon: <BookOpen size={20} /> },
             { id: 'mentor', name: 'Mentor Chat', icon: <MessageSquare size={20} /> },
@@ -628,7 +616,7 @@ export default function CASathiApp() {
           ))}
         </nav>
 
-        {/* Theme Toggle Button at Bottom of Sidebar */}
+        {/* Theme Toggle Button */}
         <div className={`p-4 border-t ${isLightMode ? 'border-slate-200' : 'border-slate-800'}`}>
           <button 
             onClick={() => setIsLightMode(!isLightMode)}
@@ -646,6 +634,7 @@ export default function CASathiApp() {
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'planner' && renderPlanner()}
           {activeTab === 'timer' && renderTimer()}
+          {activeTab === 'past_papers' && renderPastPapers()}
           {activeTab === 'quick_notes' && renderQuickNotes()}
           {activeTab === 'active_recall' && renderActiveRecall()}
           {activeTab === 'mentor' && renderMentor()}
