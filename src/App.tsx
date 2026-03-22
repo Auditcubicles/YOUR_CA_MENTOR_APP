@@ -912,122 +912,67 @@ export default function CASathiApp() {
     </div>
   );
   const renderNotes = () => (
-    <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-      <div className="w-20 h-20 bg-purple-900/20 text-purple-400 rounded-full flex items-center justify-center mb-4 border border-purple-500/20">
-        <BookOpen size={40} />
+    <div className="space-y-6 overflow-y-auto max-h-[75vh] p-2 text-left">
+    {/* --- PROFESSIONAL NOTES SECTION --- */}
+    <div className="p-6 bg-slate-900/80 rounded-3xl border border-yellow-500/30 shadow-2xl">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+          <span className="text-xl">📝</span>
+        </div>
+        <div>
+          <h3 className="text-white font-bold text-lg leading-tight uppercase tracking-wider">Quick Study Notes</h3>
+          <p className="text-gray-400 text-xs italic font-light">Draft temporary notes, saved locally in your browser session.</p>
+        </div>
       </div>
-      <h2 className="text-2xl font-bold">Active Recall Engine</h2>
-      <p className="text-gray-400 max-w-md">
-        Notes are disabled during active recall. The AI will generate conceptual
-        MCQs based on your completed topics to test real retention, not passive
-        reading.
-      </p>
-      <button className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-bold mt-4 transition-colors">
-        Start Quick Quiz (FR Consolidation)
-      </button>
+      <textarea
+        className="w-full h-44 bg-slate-800/40 text-gray-100 p-4 rounded-xl border border-white/5 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 outline-none transition-all resize-none placeholder:text-gray-600 font-sans"
+        placeholder="Enter important section numbers, audit standards, or your daily targets here..."
+        onChange={(e) => localStorage.setItem('ca_sathi_notes', e.target.value)}
+        defaultValue={localStorage.getItem('ca_sathi_notes') || ""}
+      />
+      <div className="mt-3 flex justify-between items-center px-1">
+        <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Auto-Sync Enabled</span>
+        <span className="text-[10px] text-green-500/70 font-medium italic">Data stored on this device</span>
+      </div>
     </div>
-  );
 
+    {/* --- PROFESSIONAL COMING SOON SECTION --- */}
+    <div className="flex flex-col items-center justify-center py-10 text-center bg-slate-900/40 rounded-3xl border-2 border-dashed border-purple-500/20">
+      <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center border border-purple-500/40 mb-4 shadow-[0_0_15px_rgba(147,51,234,0.3)]">
+        <span className="text-3xl animate-bounce">🚀</span>
+      </div>
+      <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">
+        Active Recall Engine
+      </h2>
+      <p className="text-gray-400 text-sm max-w-[280px] mx-auto font-light leading-relaxed">
+        AI-driven conceptual testing and MCQ analysis are currently under development. 
+        Follow <span className="text-purple-400 font-semibold italic">Audit Cubicles</span> for the official release.
+      </p>
+    </div>
+  </div>
+);
+};
+
+const CASathiApp = () => {
   return (
-    <div className="min-h-screen bg-[#0a0f1c] text-slate-200 font-sans selection:bg-blue-500/30 flex">
+    <div className="min-h-screen bg-[#0a0f1c] text-slate-200 font-sans selection:bg-blue-500/30 flex overflow-hidden">
       {/* SIDEBAR */}
       <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-black text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]">
-            CA
+        <div className="p-6 border-b border-slate-800 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-black text-white">CA</div>
+            <span className="font-bold text-lg tracking-wide text-white underline decoration-blue-500">Sathi.ai</span>
           </div>
-          <span className="font-bold text-lg tracking-wide text-white">
-            Sathi<span className="text-blue-500">.ai</span>
-          </span>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'dashboard'
-                ? 'bg-blue-600/10 text-blue-400 border border-blue-900/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <LayoutDashboard size={18} /> Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('planner')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'planner'
-                ? 'bg-blue-600/10 text-blue-400 border border-blue-900/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <CalendarCheck size={18} /> Planning Engine
-          </button>
-          <button
-            onClick={() => setActiveTab('timer')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'timer'
-                ? 'bg-blue-600/10 text-blue-400 border border-blue-900/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <TimerIcon size={18} /> Execution (Timer)
-          </button>
-          <button
-            onClick={() => setActiveTab('mentor')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'mentor'
-                ? 'bg-blue-600/10 text-blue-400 border border-blue-900/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <MessageSquare size={18} /> Mentor Chat
-            {escalationLevel > 0 && (
-              <span className="ml-auto w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('notes')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'notes'
-                ? 'bg-blue-600/10 text-blue-400 border border-blue-900/50'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <BookOpen size={18} /> Active Recall
-          </button>
-        </nav>
-
-        <div className="p-4 border-t border-slate-800">
-          <div className="bg-slate-900 rounded-lg p-3 text-xs text-center border border-slate-800 text-slate-400">
-            Target:{' '}
-            <span className="text-white font-bold">{targetHours}h/day</span>
+          <div className="mt-2 px-1">
+            <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold leading-none">Created by</p>
+            <p className="text-xs font-semibold text-blue-400 mt-1">NIKET TALWAR</p>
           </div>
         </div>
+        {/* Navigation/Tabs yahan honge */}
       </aside>
 
-      {/* MOBILE NAV (Simplified) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 z-50 flex justify-around p-3">
-        {['dashboard', 'planner', 'timer', 'mentor'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`p-2 rounded-lg ${
-              activeTab === tab
-                ? 'text-blue-400 bg-blue-900/20'
-                : 'text-slate-500'
-            }`}
-          >
-            {tab === 'dashboard' && <LayoutDashboard size={24} />}
-            {tab === 'planner' && <CalendarCheck size={24} />}
-            {tab === 'timer' && <TimerIcon size={24} />}
-            {tab === 'mentor' && <MessageSquare size={24} />}
-          </button>
-        ))}
-      </div>
-
-      {/* MAIN CONTENT */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
-        <div className="max-w-5xl mx-auto h-full">
+      <main className="flex-1 relative overflow-y-auto">
+        <div className="max-w-5xl mx-auto h-full p-6">
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'planner' && renderPlanner()}
           {activeTab === 'timer' && renderTimer()}
@@ -1037,4 +982,4 @@ export default function CASathiApp() {
       </main>
     </div>
   );
-}
+};
