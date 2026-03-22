@@ -1,108 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  LayoutDashboard,
-  CalendarCheck,
-  Timer as TimerIcon,
-  MessageSquare,
-  TrendingUp,
-  BookOpen,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Play,
-  Pause,
-  RotateCcw,
-  Send,
-  Flame,
-  Calendar,
-  BrainCircuit,
-  Target,
-  FileText,
-  Sun,
-  Moon,
-  Maximize,
-  Minimize,
-  Library,
-  ExternalLink,
-  FolderOpen
+  LayoutDashboard, CalendarCheck, Timer as TimerIcon, MessageSquare, TrendingUp, BookOpen,
+  AlertTriangle, CheckCircle, XCircle, Play, Pause, RotateCcw, Send, Flame, Calendar,
+  BrainCircuit, Target, FileText, Sun, Moon, Maximize, Minimize, Library, ExternalLink, FolderOpen, StopCircle, Clock
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
 function useLocalStorage(key, initialValue) {
   const [value, setValue] = React.useState(() => {
     const saved = localStorage.getItem(key);
-    if (saved !== null) {
-      try { return JSON.parse(saved); } catch { return saved; }
-    }
+    if (saved !== null) { try { return JSON.parse(saved); } catch { return saved; } }
     return initialValue;
   });
-
-  React.useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
-
+  React.useEffect(() => { localStorage.setItem(key, JSON.stringify(value)); }, [key, value]);
   return [value, setValue];
 }
 
-// --- SIMULATED AI MENTOR BRAIN (For Auto-triggers) ---
-const generateMentorResponse = (trigger, context = {}, userMessage = '') => {
+// --- AI MENTOR BRAIN ---
+const generateMentorResponse = (trigger, context = {}) => {
   const { hoursToday = 0, targetHours = 10, daysLeft = 0, streak = 0, escalation = 0 } = context;
-
   const responses = {
-    check_in: [
-      '2 ghante ho gaye. What have you completed? Give me a quick update.',
-      'Are you on track today? Syllabus wait nahi karega.',
-    ],
-    missed_target: [
-      'You planned target hours and completed barely anything. This is not acceptable.',
-      `Exam me sirf ${daysLeft} days bache hain aur tumhara yeh haal hai. Wake up!`,
-    ],
-    good_session: [
-      "Good focus. But don't get comfortable. Take your break.",
-      "That's how a CA student studies. Keep this momentum going.",
-    ],
-    streak_break: [
-      'Streak broken. This is exactly how attempts are lost. Back to zero.',
-    ],
     urgency_90_plus: "You have time. Build strong concepts. But don't waste days.",
-    urgency_30_to_90: 'Now consistency matters. No more delays. Every single day counts.',
+    urgency_30_to_90: 'Consistency matters now. No more delays. Every single day counts.',
     urgency_less_30: 'Final phase. Every hour counts. Drop everything else and focus.',
     urgency_less_10: 'No excuses. Full revision mode. Do or die.',
-    general_chat: [
-      "CA doesn't care about your mood. It cares about discipline.",
-      'Stop scrolling. Go back to your books.',
-    ],
   };
-
   if (trigger === 'urgency') {
     if (daysLeft > 90) return responses.urgency_90_plus;
     if (daysLeft > 30) return responses.urgency_30_to_90;
     if (daysLeft > 10) return responses.urgency_less_30;
     return responses.urgency_less_10;
   }
-
-  if (responses[trigger]) {
-    const opts = responses[trigger];
-    if (escalation >= 2 && trigger === 'missed_target') return 'Warning: If you continue this behavior, you are going to fail. Change your attitude right now.';
-    return opts[Math.floor(Math.random() * opts.length)];
-  }
-  return responses.general_chat[0];
+  return "Let's focus and get back to work.";
 };
 
 export default function CASathiApp() {
-  // --- THEME STATE ---
+  // --- THEME STATE (MODERN AESTHETIC) ---
   const [isLightMode, setIsLightMode] = useLocalStorage('ca-theme-light', false);
 
   const theme = {
-    bg: isLightMode ? 'bg-slate-50' : 'bg-[#0a0f1c]',
-    text: isLightMode ? 'text-slate-900' : 'text-slate-200',
-    sidebar: isLightMode ? 'bg-white border-slate-200' : 'bg-slate-950 border-slate-800',
-    card: isLightMode ? 'bg-white border-slate-200 shadow-sm' : 'bg-gray-800/30 border-gray-700/50',
-    cardSolid: isLightMode ? 'bg-white border-slate-200 shadow-md' : 'bg-gray-900/80 border-gray-700/50',
-    input: isLightMode ? 'bg-slate-50 border-slate-300 text-slate-900 focus:border-blue-500' : 'bg-gray-800/40 border-gray-700 text-gray-100 focus:border-yellow-500/50',
-    textMuted: isLightMode ? 'text-slate-500' : 'text-gray-400',
-    hoverTab: isLightMode ? 'hover:bg-slate-100 text-slate-600 hover:text-blue-600' : 'hover:bg-slate-900 text-gray-400 hover:text-white',
-    activeTab: isLightMode ? 'bg-blue-50 text-blue-600 border border-blue-200 shadow-sm' : 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+    bg: isLightMode ? 'bg-[#f8fafc]' : 'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-[#0a0f1c] to-black',
+    text: isLightMode ? 'text-slate-800' : 'text-slate-100',
+    sidebar: isLightMode ? 'bg-white/80 border-slate-200 shadow-xl backdrop-blur-3xl' : 'bg-white/[0.02] border-white/5 shadow-2xl backdrop-blur-2xl',
+    card: isLightMode ? 'bg-white border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)]' : 'bg-white/[0.03] border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl hover:bg-white/[0.05] transition-colors',
+    cardSolid: isLightMode ? 'bg-white border-slate-200 shadow-md' : 'bg-[#0f172a]/80 border-white/10 shadow-2xl backdrop-blur-3xl',
+    input: isLightMode ? 'bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10' : 'bg-black/40 border-white/10 text-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20',
+    textMuted: isLightMode ? 'text-slate-500' : 'text-slate-400',
+    hoverTab: isLightMode ? 'hover:bg-slate-100 text-slate-600 hover:text-blue-600' : 'hover:bg-white/10 text-slate-400 hover:text-white',
+    activeTab: isLightMode ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-l-4 border-blue-600 shadow-sm' : 'bg-gradient-to-r from-blue-600/20 to-indigo-600/10 text-blue-400 border-l-4 border-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]'
   };
 
   // --- STATE MANAGEMENT ---
@@ -112,38 +57,50 @@ export default function CASathiApp() {
   const [hoursStudiedToday, setHoursStudiedToday] = useLocalStorage('ca-hoursToday', 0);
   const [streak, setStreak] = useLocalStorage('ca-streak', 0);
   const [escalationLevel, setEscalationLevel] = useLocalStorage('ca-escalation', 0);
-
-  const rawDaysLeft = examDate ? Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
-  const daysLeft = Math.max(1, rawDaysLeft);
-  const reqDailyHours = hoursStudiedToday < targetHours ? (targetHours + (targetHours - hoursStudiedToday) / daysLeft).toFixed(1) : targetHours;
-
   const [tasks, setTasks] = useLocalStorage('ca-tasks', []);
   const [chatHistory, setChatHistory] = useLocalStorage('ca-chat', [
-    { sender: 'mentor', text: "Hello! I am your AI Mentor. You can ask me CA Final subject doubts (FR, Audit, DT, etc.), ask for daily planning, or just talk to me if you are stressed. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+    { sender: 'mentor', text: "Hello! I am your Expert AI Mentor. I am here to plan your CA journey, resolve doubts, and keep you disciplined.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
   ]);
   const [chatInput, setChatInput] = React.useState('');
   
+  // Timer State
   const [workDuration, setWorkDuration] = useLocalStorage('ca-work-duration', 50);
   const [breakDuration, setBreakDuration] = useLocalStorage('ca-break-duration', 10);
   const [timerMode, setTimerMode] = useState('pomodoro');
   const [timeLeft, setTimeLeft] = useState(workDuration * 60);
   const [isActive, setIsActive] = useState(false);
   const [showSessionLog, setShowSessionLog] = useState(false);
+  const [timerDisplayType, setTimerDisplayType] = useLocalStorage('ca-timer-display', 'digital'); // NEW: Analog/Digital State
   
   const timerRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = React.useState(false);
   const [newTask, setNewTask] = React.useState({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
 
-  // --- LOGIC FUNCTIONS ---
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!newTask.subject || !newTask.topic) return;
-    setTasks([...tasks, { ...newTask, id: Date.now(), status: 'pending' }]);
-    setShowAddTaskModal(false);
-    setNewTask({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
-  };
+  // --- ENGINE: STREAK & MIDNIGHT RESET LOGIC ---
+  useEffect(() => {
+    const todayDate = new Date().toDateString();
+    const lastLogin = localStorage.getItem('ca-lastLogin');
 
+    if (lastLogin !== todayDate) {
+      setHoursStudiedToday(0); 
+      localStorage.setItem('ca-lastLogin', todayDate);
+      
+      const lastTargetHit = localStorage.getItem('ca-lastTargetHit');
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (lastTargetHit !== yesterday.toDateString() && lastTargetHit !== todayDate) {
+        setStreak(0); 
+      }
+    }
+  }, []);
+
+  const rawDaysLeft = examDate ? Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+  const daysLeft = Math.max(1, rawDaysLeft);
+  const reqDailyHours = hoursStudiedToday < targetHours ? (targetHours - hoursStudiedToday).toFixed(1) : 0;
+
+  // --- TIMER LOGIC ---
   useEffect(() => {
     let interval = null;
     if (isActive && timeLeft > 0) {
@@ -161,23 +118,6 @@ export default function CASathiApp() {
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) { timerRef.current?.requestFullscreen().catch(err => console.log(err)); } 
-    else { document.exitFullscreen(); }
-  };
-
-  const handleWorkTimeChange = (e) => {
-    const val = Number(e.target.value);
-    setWorkDuration(val);
-    if (timerMode === 'pomodoro' && !isActive) setTimeLeft(val * 60);
-  };
-
-  const handleBreakTimeChange = (e) => {
-    const val = Number(e.target.value);
-    setBreakDuration(val);
-    if (timerMode === 'shortBreak' && !isActive) setTimeLeft(val * 60);
-  };
-
   const handleSessionComplete = () => {
     if (timerMode === 'pomodoro') {
       setShowSessionLog(true);
@@ -189,21 +129,54 @@ export default function CASathiApp() {
     }
   };
 
+  const handleStopSession = () => {
+    setIsActive(false);
+    const totalSecondsPlanned = timerMode === 'pomodoro' ? workDuration * 60 : breakDuration * 60;
+    const secondsStudied = totalSecondsPlanned - timeLeft;
+    
+    if (timerMode === 'pomodoro' && secondsStudied > 0) {
+      const hoursToAdd = secondsStudied / 3600; 
+      const newTotalHours = Number(hoursStudiedToday) + hoursToAdd;
+      setHoursStudiedToday(newTotalHours);
+      
+      if (newTotalHours >= targetHours && Number(hoursStudiedToday) < targetHours) {
+        setStreak(Number(streak) + 1);
+        localStorage.setItem('ca-lastTargetHit', new Date().toDateString());
+      }
+      addMentorMessage(`You stopped the session early. Added ${Math.round(secondsStudied / 60)} minutes to your daily progress.`);
+    }
+    
+    setTimerMode('pomodoro');
+    setTimeLeft(workDuration * 60);
+    setShowSessionLog(false);
+    if (document.fullscreenElement) document.exitFullscreen(); 
+  };
+
   const logSessionResult = (status) => {
     setShowSessionLog(false);
+    
+    const sessionHoursAdded = status === 'completed' ? (Number(workDuration) / 60) : status === 'partial' ? ((Number(workDuration) / 2) / 60) : 0;
+    const newTotalHours = Number(hoursStudiedToday) + sessionHoursAdded;
+
+    if (sessionHoursAdded > 0) {
+      setHoursStudiedToday(newTotalHours);
+      if (newTotalHours >= targetHours && Number(hoursStudiedToday) < targetHours) {
+        setStreak(Number(streak) + 1);
+        localStorage.setItem('ca-lastTargetHit', new Date().toDateString());
+      }
+    }
+
     if (status === 'completed') {
-      setHoursStudiedToday((prev) => prev + (workDuration / 60));
-      addMentorMessage(generateMentorResponse('good_session', { hoursToday: hoursStudiedToday, targetHours, daysLeft, streak, escalation: escalationLevel }));
+      addMentorMessage("Good focus. Session logged perfectly. Take a break.");
       setEscalationLevel(0);
       setTimerMode('shortBreak');
       setTimeLeft(breakDuration * 60);
       setIsActive(true);
     } else if (status === 'partial') {
-      setHoursStudiedToday((prev) => prev + ((workDuration/2) / 60));
-      addMentorMessage('Partial completion is just procrastination. Why did you stop?');
+      addMentorMessage('Partial session logged. Avoid distractions next time.');
       setEscalationLevel((prev) => prev + 1);
     } else {
-      addMentorMessage(generateMentorResponse('missed_target', { hoursToday: hoursStudiedToday, targetHours, daysLeft, streak, escalation: escalationLevel }));
+      addMentorMessage('Session wasted. No hours added. Pull yourself together.');
       setEscalationLevel((prev) => prev + 1);
     }
   };
@@ -212,7 +185,6 @@ export default function CASathiApp() {
     setChatHistory((prev) => [...prev, { sender, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
   };
 
-  // --- UPGRADED AI MENTOR API LOGIC ---
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   const handleChatSubmit = async (e) => {
     e.preventDefault();
@@ -222,35 +194,15 @@ export default function CASathiApp() {
     setChatInput('');
     addMentorMessage('...', 'mentor');
 
-    const prompt = `
-    You are 'Sathi,' an elite CA Mentor and an all-rounder expert in Finance, Audit, Taxation, and the entire CA Final curriculum. Your tone is professional English & sometime Hinglish (a natural mix of Hindi and English), acting like a highly knowledgeable, empathetic, and supportive big brother from the 'Audit Cubicles' brand.
-    
-    Your Core Capabilities:
-    1. SUBJECT EXPERT: Answer technical and subjective doubts perfectly for subjects like FR, AFM, Audit, DT, IDT, and IBS. Explain concepts clearly with practical examples and section references if needed.
-    2. STRATEGIST & PLANNER: Help students plan their day, create revision strategies, optimize their timetables, and guide them on how to approach specific subjects.
-    3. MOTIVATOR: Be deeply empathetic and supportive when they are stressed or burnt out. Remind them of their potential. However, use 'tough love' if they are making silly excuses.
-
-    Live Context of the Student:
-    - Exam is in ${daysLeft} days.
-    - Target today: ${targetHours} hours.
-    - Completed today: ${hoursStudiedToday} hours.
-    - Current streak: ${streak} days.
-    
-    Rules for response: 
-    - Give highly practical, actionable CA-specific advice. 
-    - Format your answers nicely using short paragraphs or bullet points for readability.
-    - Never break character. Never state that you are an AI.
-    
-    Student says: "${userText}"
-    `;
+    const prompt = `You are 'Sathi,' an elite CA Mentor. Tone: Hinglish. Answer Audit/FR/Tax doubts brilliantly. Be supportive.
+      Context: Exam in ${daysLeft} days. Target: ${targetHours}h. Completed: ${hoursStudiedToday}h. Streak: ${streak}.
+      Student says: "${userText}"`;
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
       );
       const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
       const aiReply = data.candidates[0].content.parts[0].text;
       setChatHistory((prev) => {
         const newHistory = [...prev];
@@ -260,7 +212,7 @@ export default function CASathiApp() {
     } catch (error) {
       setChatHistory((prev) => {
         const newHistory = [...prev];
-        newHistory[newHistory.length - 1] = { sender: 'mentor', text: `SYSTEM ERROR: Unable to connect to the brain. Check your API Key.`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        newHistory[newHistory.length - 1] = { sender: 'mentor', text: `SYSTEM ERROR: Connection failed.`, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
         return newHistory;
       });
     }
@@ -272,180 +224,198 @@ export default function CASathiApp() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!newTask.subject || !newTask.topic) return;
+    setTasks([...tasks, { ...newTask, id: Date.now(), status: 'pending' }]);
+    setShowAddTaskModal(false);
+    setNewTask({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
+  };
+
   const toggleTaskStatus = (id) => {
     setTasks(tasks.map((t) => {
       if (t.id === id) {
-        const nextStatus = t.status === 'pending' ? 'completed' : t.status === 'completed' ? 'partial' : 'pending';
-        return { ...t, status: nextStatus };
+        return { ...t, status: t.status === 'pending' ? 'completed' : t.status === 'completed' ? 'partial' : 'pending' };
       }
       return t;
     }));
   };
 
-  // --- RENDER FUNCTIONS ---
-  const renderDashboard = () => (
-    <div className="space-y-6">
-      <div className={`border ${isLightMode ? 'bg-red-50 border-red-200' : 'bg-red-950/40 border-red-900/50'} rounded-xl p-6 relative overflow-hidden`}>
-        <div className={`absolute top-0 right-0 w-32 h-32 ${isLightMode ? 'bg-red-200' : 'bg-red-600/10'} rounded-full blur-3xl`}></div>
-        <div className="flex justify-between items-center relative z-10">
-          <div>
-            <h2 className="text-red-500 font-bold tracking-wider text-sm mb-1 uppercase">Mission CA Final</h2>
-            <div className="flex items-baseline gap-3">
-              <span className={`text-5xl font-black ${isLightMode ? 'text-slate-900' : 'text-white'}`}>{daysLeft}</span>
-              <span className={`text-xl ${theme.textMuted} font-medium`}>Days Left</span>
-            </div>
-            <p className={`mt-2 ${isLightMode ? 'text-red-700' : 'text-red-200/80'} text-sm font-medium border-l-2 border-red-500 pl-3`}>"{generateMentorResponse('urgency', { daysLeft })}"</p>
-          </div>
-          <div className="text-right">
-            <div className={`text-sm ${theme.textMuted} mb-1`}>Target Date</div>
-            <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`${theme.input} rounded px-3 py-1 font-mono text-sm focus:outline-none`} />
-          </div>
-        </div>
-      </div>
+  // --- RENDER FUNCTIONS (AESTHETIC UI) ---
+  const renderDashboard = () => {
+    const progressPercent = Math.min((Number(hoursStudiedToday) / Number(targetHours)) * 100, 100);
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`${theme.card} p-5 rounded-xl flex items-center gap-4`}>
-          <div className="p-3 bg-blue-500/20 text-blue-500 rounded-lg"><Target size={24} /></div>
-          <div>
-            <div className={`text-sm ${theme.textMuted}`}>Today's Progress</div>
-            <div className="text-2xl font-bold">{hoursStudiedToday.toFixed(1)} / {targetHours} <span className={`text-sm font-normal ${theme.textMuted}`}>hrs</span></div>
-            <div className={`w-full ${isLightMode ? 'bg-gray-200' : 'bg-gray-700'} h-1.5 mt-2 rounded-full overflow-hidden`}>
-              <div className="bg-blue-500 h-full" style={{ width: `${(hoursStudiedToday / targetHours) * 100}%` }}></div>
-            </div>
-          </div>
-        </div>
-        <div className={`${theme.card} p-5 rounded-xl flex items-center gap-4`}>
-          <div className="p-3 bg-orange-500/20 text-orange-500 rounded-lg"><Flame size={24} /></div>
-          <div>
-            <div className={`text-sm ${theme.textMuted}`}>Consistency Streak</div>
-            <div className="text-2xl font-bold">{streak} <span className={`text-sm font-normal ${theme.textMuted}`}>Days</span></div>
-            <div className="text-xs text-orange-500 mt-1">Maintained Pace</div>
-          </div>
-        </div>
-        <div className={`${theme.card} ${hoursStudiedToday < targetHours && !isLightMode ? 'border-red-900/50 bg-red-950/20' : ''} p-5 rounded-xl flex items-center gap-4`}>
-          <div className={`p-3 rounded-lg ${hoursStudiedToday < targetHours ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}><TrendingUp size={24} /></div>
-          <div>
-            <div className={`text-sm ${theme.textMuted}`}>Required Daily Pace</div>
-            <div className="text-2xl font-bold">{reqDailyHours} <span className={`text-sm font-normal ${theme.textMuted}`}>hrs/day</span></div>
-            <div className={`text-xs mt-1 ${hoursStudiedToday < targetHours ? 'text-red-500' : 'text-green-500'}`}>
-              {hoursStudiedToday < targetHours ? `You lost time. Pace increased.` : 'On track. Maintain pace.'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`${theme.card} rounded-xl p-6`}>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Calendar size={18} className="text-blue-500" /> Today's Battle Plan</h3>
-        <div className="space-y-3">
-          {tasks.map((task) => (
-            <div key={task.id} className={`flex items-center justify-between p-3 ${theme.cardSolid} rounded-lg border`}>
-              <div className="flex items-center gap-4">
-                <button onClick={() => toggleTaskStatus(task.id)}>
-                  {task.status === 'completed' && <CheckCircle className="text-green-500" size={20} />}
-                  {task.status === 'partial' && <AlertTriangle className="text-yellow-500" size={20} />}
-                  {task.status === 'pending' && <div className={`w-5 h-5 rounded-full border-2 ${isLightMode ? 'border-gray-400' : 'border-gray-600'}`}></div>}
-                </button>
-                <div>
-                  <div className="font-medium flex items-center gap-2">
-                    {task.subject}: {task.topic}
-                    <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider ${task.difficulty === 'Hard' ? 'bg-red-500/20 text-red-500' : 'bg-yellow-500/20 text-yellow-600'}`}>{task.difficulty}</span>
-                  </div>
-                  <div className={`text-xs ${theme.textMuted} mt-0.5`}>{task.timeOfDay} Block • {task.duration} Hours</div>
-                </div>
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className={`relative overflow-hidden rounded-[2rem] p-10 ${isLightMode ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-red-100' : 'bg-gradient-to-br from-red-950/40 to-[#2a0808] border border-red-900/30'} shadow-2xl`}>
+          <div className={`absolute -top-32 -right-32 w-96 h-96 ${isLightMode ? 'bg-red-400/20' : 'bg-red-600/20'} rounded-full blur-[100px]`}></div>
+          <div className="flex justify-between items-center relative z-10">
+            <div>
+              <h2 className="text-red-500 font-extrabold tracking-[0.2em] text-sm mb-3 uppercase drop-shadow-sm">Mission CA Final</h2>
+              <div className="flex items-baseline gap-4">
+                <span className={`text-7xl font-black tracking-tighter ${isLightMode ? 'text-slate-900' : 'text-white'} drop-shadow-md`}>{daysLeft}</span>
+                <span className={`text-2xl ${theme.textMuted} font-semibold`}>Days to go</span>
               </div>
-              <div className="text-right">
-                {task.status === 'completed' ? <span className="text-xs font-bold text-green-500 uppercase">Logged</span> : <button onClick={() => setActiveTab('timer')} className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded font-medium transition-colors">Start Session</button>}
+              <p className={`mt-4 ${isLightMode ? 'text-red-700' : 'text-red-200/80'} text-sm font-medium border-l-4 border-red-500 pl-4 py-1 max-w-lg leading-relaxed`}>"{generateMentorResponse('urgency', { daysLeft })}"</p>
+            </div>
+            <div className={`backdrop-blur-2xl p-5 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-xl' : 'bg-white/5 border-white/10 shadow-2xl'}`}>
+              <div className={`text-xs font-black uppercase tracking-widest ${theme.textMuted} mb-3`}>Target Date</div>
+              <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`${theme.input} rounded-xl px-5 py-3 font-mono text-sm focus:outline-none w-full cursor-pointer`} />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className={`${theme.card} p-8 rounded-[2rem] flex flex-col justify-between transition-all hover:-translate-y-2 duration-300`}>
+            <div className="flex items-center gap-5 mb-6">
+              <div className="p-4 bg-gradient-to-br from-blue-500 to-cyan-400 text-white rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.4)]"><Target size={28} /></div>
+              <div className={`font-bold text-lg ${theme.textMuted}`}>Today's Progress</div>
+            </div>
+            <div>
+              <div className="text-4xl font-black tracking-tight">{Number(hoursStudiedToday).toFixed(1)} <span className={`text-lg font-semibold ${theme.textMuted}`}>/ {targetHours} hrs</span></div>
+              <div className={`w-full ${isLightMode ? 'bg-slate-200' : 'bg-slate-800/50'} h-3 mt-5 rounded-full overflow-hidden border ${isLightMode ? 'border-transparent' : 'border-white/5'}`}>
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(56,189,248,0.6)]" style={{ width: `${progressPercent}%` }}></div>
               </div>
             </div>
-          ))}
-          {tasks.length === 0 && <p className={`text-center py-4 ${theme.textMuted} italic`}>No tasks assigned. Go to Study Planner.</p>}
-        </div>
-      </div>
-    </div>
-  );
+          </div>
 
-  // --- UPGRADED AI MENTOR UI ---
-  const renderMentor = () => (
-    <div className={`flex flex-col h-[calc(100vh-8rem)] ${theme.cardSolid} rounded-xl overflow-hidden`}>
-      <div className={`p-4 ${isLightMode ? 'bg-gray-100 border-b border-gray-200' : 'bg-gray-800 border-b border-gray-700'} flex items-center justify-between`}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center border border-blue-500/30 text-blue-500"><BrainCircuit size={20} /></div>
-          <div><h3 className="font-bold">Expert AI Mentor</h3><p className={`text-xs ${theme.textMuted} font-mono tracking-wider`}>Finance, Strategy & Support</p></div>
-        </div>
-        <div className={`text-xs ${theme.textMuted} font-mono`}>Escalation Lvl: {escalationLevel}</div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chatHistory.map((msg, i) => (
-          <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : (isLightMode ? 'bg-white border border-gray-200 rounded-bl-none text-slate-800 shadow-sm' : 'bg-gray-800 border border-gray-700 text-gray-200 rounded-bl-none shadow-sm')}`}>
-              {msg.text}
-              <div className="text-[10px] text-right opacity-50 mt-2">{msg.time}</div>
+          <div className={`${theme.card} p-8 rounded-[2rem] flex flex-col justify-between transition-all hover:-translate-y-2 duration-300`}>
+            <div className="flex items-center gap-5 mb-6">
+              <div className="p-4 bg-gradient-to-br from-orange-400 to-red-500 text-white rounded-2xl shadow-[0_0_20px_rgba(249,115,22,0.4)]"><Flame size={28} /></div>
+              <div className={`font-bold text-lg ${theme.textMuted}`}>Consistency Streak</div>
             </div>
+            <div>
+              <div className="text-4xl font-black tracking-tight">{streak} <span className={`text-lg font-semibold ${theme.textMuted}`}>Days</span></div>
+              <div className="text-sm font-bold text-orange-500 mt-3 tracking-wide uppercase">Target Hit Streaks 🔥</div>
+            </div>
+          </div>
+
+          <div className={`${theme.card} p-8 rounded-[2rem] flex flex-col justify-between transition-all hover:-translate-y-2 duration-300`}>
+            <div className="flex items-center gap-5 mb-6">
+              <div className={`p-4 rounded-2xl text-white shadow-lg ${hoursStudiedToday < targetHours ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/40' : 'bg-gradient-to-br from-emerald-400 to-green-500 shadow-emerald-500/40'}`}><TrendingUp size={28} /></div>
+              <div className={`font-bold text-lg ${theme.textMuted}`}>Remaining Today</div>
+            </div>
+            <div>
+              <div className="text-4xl font-black tracking-tight">{reqDailyHours} <span className={`text-lg font-semibold ${theme.textMuted}`}>hrs</span></div>
+              <div className={`text-sm font-bold mt-3 uppercase tracking-wide ${hoursStudiedToday < targetHours ? 'text-red-500' : 'text-emerald-500'}`}>
+                {hoursStudiedToday < targetHours ? `Pending To Hit Target.` : 'Target Accomplished!'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // --- NEW: ANALOG CLOCK COMPONENT ---
+  const renderAnalogClock = () => {
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    // Clock math to make hands tick gracefully
+    const minAngle = (m * 6) + (s * 0.1); 
+    const secAngle = s * 6;
+
+    return (
+      <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-[8px] border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.3)] flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent backdrop-blur-xl mb-12 mx-auto">
+        {/* Dial Markers */}
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className="absolute w-full h-full p-4" style={{ transform: `rotate(${i * 30}deg)` }}>
+            <div className={`mx-auto w-1.5 ${i % 3 === 0 ? 'h-5 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'h-2 bg-white/20'} rounded-full`}></div>
           </div>
         ))}
+        {/* Minute Hand */}
+        <div className="absolute w-2.5 h-[35%] bg-slate-200 rounded-full origin-bottom bottom-1/2" style={{ transform: `rotate(${minAngle}deg)` }}></div>
+        {/* Second Hand */}
+        <div className="absolute w-1 h-[45%] bg-red-500 rounded-full origin-bottom bottom-1/2" style={{ transform: `rotate(${secAngle}deg)` }}></div>
+        {/* Center Dot */}
+        <div className="absolute w-5 h-5 bg-black rounded-full border-[4px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,1)] z-10"></div>
+        {/* Digital Sub-display */}
+        <div className="absolute bottom-10 bg-black/40 px-3 py-1 rounded-lg border border-white/10 text-xs font-mono font-bold tracking-widest text-slate-300">
+          {formatTime(timeLeft)}
+        </div>
       </div>
-      <form onSubmit={handleChatSubmit} className={`p-4 ${isLightMode ? 'bg-gray-100 border-t border-gray-200' : 'bg-gray-800 border-t border-gray-700'} flex gap-2`}>
-        <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask an Audit doubt, request a timetable, or get advice..." className={`flex-1 ${theme.input} rounded-xl px-4 py-3 text-sm outline-none`} />
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white px-5 rounded-xl transition-colors font-bold"><Send size={20} /></button>
-      </form>
-    </div>
-  );
+    );
+  };
 
   const renderTimer = () => (
-    <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all ${isFullScreen ? (isLightMode ? 'bg-slate-50' : 'bg-[#0a0f1c]') : ''}`}>
-      <button onClick={toggleFullScreen} className={`absolute top-4 right-4 p-2 rounded-lg transition-colors ${isLightMode ? 'text-slate-500 hover:bg-slate-200' : 'text-gray-400 hover:bg-gray-800'}`} title={isFullScreen ? "Exit Fullscreen" : "Go Fullscreen"}>
-        {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
+    <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all duration-500 animate-in fade-in zoom-in-95 ${isFullScreen ? (isLightMode ? 'bg-[#f8fafc]' : 'bg-[#030712]') : ''}`}>
+      <button onClick={toggleFullScreen} className={`absolute top-6 right-6 p-3 rounded-2xl transition-all ${isLightMode ? 'text-slate-500 hover:bg-white shadow-sm' : 'text-slate-400 hover:bg-white/10'}`} title={isFullScreen ? "Exit Fullscreen" : "Go Fullscreen"}>
+        {isFullScreen ? <Minimize size={28} /> : <Maximize size={28} />}
       </button>
 
-      <div className="text-center w-full max-w-md">
-        <h2 className={`text-xl font-bold mb-6 uppercase tracking-widest ${theme.textMuted}`}>{timerMode === 'pomodoro' ? 'Focus Session' : 'Strict Break'}</h2>
+      <div className="text-center w-full max-w-2xl">
+        <h2 className={`text-sm font-black mb-8 uppercase tracking-[0.4em] ${theme.textMuted}`}>
+          {timerMode === 'pomodoro' ? 'Deep Focus Session' : 'Strict Break'}
+        </h2>
         
+        {/* Toggle Analog/Digital */}
+        <div className={`flex justify-center items-center gap-2 mb-8 p-1.5 rounded-2xl border w-fit mx-auto backdrop-blur-md ${isLightMode ? 'bg-slate-100 border-slate-200' : 'bg-black/40 border-white/5'}`}>
+          <button onClick={() => setTimerDisplayType('digital')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${timerDisplayType === 'digital' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+            <TimerIcon size={18} /> Digital
+          </button>
+          <button onClick={() => setTimerDisplayType('analog')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${timerDisplayType === 'analog' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+            <Clock size={18} /> Analog
+          </button>
+        </div>
+
         {!isActive && !isFullScreen && (
-          <div className="flex justify-center gap-6 mb-6">
+          <div className="flex justify-center gap-10 mb-8">
             <div className="flex flex-col items-center">
-              <label className={`text-xs mb-1 font-semibold ${theme.textMuted}`}>Work (Min)</label>
-              <input type="number" value={workDuration} onChange={handleWorkTimeChange} className={`w-16 text-center rounded p-1 font-mono ${theme.input}`} />
+              <label className={`text-xs mb-3 font-bold uppercase tracking-widest ${theme.textMuted}`}>Work (Min)</label>
+              <input type="number" value={workDuration} onChange={(e) => {setWorkDuration(e.target.value); if(timerMode==='pomodoro') setTimeLeft(Number(e.target.value)*60);}} className={`w-24 text-center rounded-2xl p-3 font-mono text-xl font-black shadow-inner ${theme.input}`} />
             </div>
             <div className="flex flex-col items-center">
-              <label className={`text-xs mb-1 font-semibold ${theme.textMuted}`}>Break (Min)</label>
-              <input type="number" value={breakDuration} onChange={handleBreakTimeChange} className={`w-16 text-center rounded p-1 font-mono ${theme.input}`} />
+              <label className={`text-xs mb-3 font-bold uppercase tracking-widest ${theme.textMuted}`}>Break (Min)</label>
+              <input type="number" value={breakDuration} onChange={(e) => {setBreakDuration(e.target.value); if(timerMode==='shortBreak') setTimeLeft(Number(e.target.value)*60);}} className={`w-24 text-center rounded-2xl p-3 font-mono text-xl font-black shadow-inner ${theme.input}`} />
             </div>
           </div>
         )}
 
-        <div className={`text-8xl md:text-[10rem] font-black font-mono tracking-tighter leading-none mb-12 ${timerMode === 'shortBreak' ? 'text-green-500' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white') : theme.textMuted}`}>
-          {formatTime(timeLeft)}
-        </div>
+        {/* Conditional Timer Display */}
+        {timerDisplayType === 'digital' ? (
+          <div className={`text-[8rem] md:text-[14rem] font-black font-mono tracking-tighter leading-none mb-12 drop-shadow-2xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_50px_rgba(16,185,129,0.5)]' : isActive ? (isLightMode ? 'text-slate-900 drop-shadow-md' : 'text-white drop-shadow-[0_0_60px_rgba(255,255,255,0.2)]') : theme.textMuted}`}>
+            {formatTime(timeLeft)}
+          </div>
+        ) : (
+          renderAnalogClock()
+        )}
         
-        <div className="flex justify-center gap-6 mb-12">
-          <button onClick={() => setIsActive(!isActive)} className={`w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-lg ${isActive ? 'bg-red-500/10 text-red-500 border-2 border-red-500' : 'bg-blue-600 text-white hover:bg-blue-500 hover:scale-105'}`}>
-            {isActive ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
-          </button>
-          <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? workDuration * 60 : breakDuration * 60); }} className={`w-16 h-16 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-gray-300 hover:bg-gray-100' : 'bg-gray-800 border-gray-700 hover:text-white'}`}>
+        {/* Play, Pause, Stop, Reset Controls */}
+        <div className="flex justify-center items-center gap-8 mb-16">
+          <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? workDuration * 60 : breakDuration * 60); }} className={`w-16 h-16 rounded-full flex items-center justify-center transition-all border-2 ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer">
             <RotateCcw size={24} />
+          </button>
+
+          <button onClick={() => setIsActive(!isActive)} className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.3)]' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_40px_rgba(59,130,246,0.5)]'}`}>
+            {isActive ? <Pause size={40} /> : <Play size={40} className="ml-2" />}
+          </button>
+
+          <button onClick={handleStopSession} className={`w-16 h-16 rounded-full flex items-center justify-center transition-all border-2 ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-100 text-red-500' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time">
+            <StopCircle size={28} />
           </button>
         </div>
 
         {!isFullScreen && (
-          <div className={`${theme.cardSolid} rounded-xl p-4 text-left`}>
-            <div className={`text-xs font-mono mb-2 ${theme.textMuted}`}>CURRENTLY EXECUTING:</div>
-            <select className={`w-full rounded p-2 text-sm outline-none ${theme.input}`}>
+          <div className={`${theme.cardSolid} rounded-3xl p-6 text-left shadow-xl max-w-xl mx-auto`}>
+            <div className={`text-xs font-black uppercase tracking-widest mb-4 ${theme.textMuted}`}>Currently Executing:</div>
+            <select className={`w-full rounded-2xl p-4 text-lg font-bold outline-none cursor-pointer ${theme.input}`}>
               {tasks.filter((t) => t.status !== 'completed').map((t) => <option key={t.id}>{t.subject} - {t.topic}</option>)}
-              {tasks.filter((t) => t.status !== 'completed').length === 0 && <option>No active tasks</option>}
+              {tasks.filter((t) => t.status !== 'completed').length === 0 && <option>No active tasks assigned</option>}
             </select>
           </div>
         )}
       </div>
 
       {showSessionLog && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`${theme.cardSolid} rounded-2xl p-8 max-w-sm w-full text-center`}>
-            <h3 className="text-2xl font-bold mb-2">Session Over</h3>
-            <p className={`text-sm mb-6 ${theme.textMuted}`}>Mentor is asking: How much did you actually study?</p>
-            <div className="space-y-3">
-              <button onClick={() => logSessionResult('completed')} className="w-full py-3 bg-green-500/10 text-green-500 border border-green-500/50 hover:bg-green-500/20 rounded-lg font-bold flex items-center justify-center gap-2"><CheckCircle size={18} /> Fully Completed</button>
-              <button onClick={() => logSessionResult('partial')} className="w-full py-3 bg-yellow-500/10 text-yellow-600 border border-yellow-500/50 hover:bg-yellow-500/20 rounded-lg font-bold flex items-center justify-center gap-2"><AlertTriangle size={18} /> Partially Completed</button>
-              <button onClick={() => logSessionResult('failed')} className="w-full py-3 bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500/20 rounded-lg font-bold flex items-center justify-center gap-2"><XCircle size={18} /> Wasted Session</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-2xl flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className={`${theme.cardSolid} rounded-[2.5rem] p-12 max-w-lg w-full text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/20`}>
+            <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-500"><TimerIcon size={40} /></div>
+            <h3 className="text-4xl font-black mb-4">Session Complete</h3>
+            <p className={`text-base font-semibold mb-10 ${theme.textMuted}`}>Be honest with yourself. How was your focus?</p>
+            <div className="space-y-4">
+              <button onClick={() => logSessionResult('completed')} className="w-full py-5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/20 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"><CheckCircle size={24} /> 100% Focused</button>
+              <button onClick={() => logSessionResult('partial')} className="w-full py-5 bg-amber-500/10 text-amber-500 border border-amber-500/30 hover:bg-amber-500/20 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"><AlertTriangle size={24} /> Partially Distracted</button>
+              <button onClick={() => logSessionResult('failed')} className="w-full py-5 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"><XCircle size={24} /> Wasted (0 Output)</button>
             </div>
           </div>
         </div>
@@ -454,55 +424,59 @@ export default function CASathiApp() {
   );
 
   const renderPlanner = () => (
-    <div className="space-y-6 relative">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Planning Engine</h2>
-        <button onClick={() => setShowAddTaskModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-[0_0_10px_rgba(37,99,235,0.4)]">+ Add New Task</button>
+    <div className="space-y-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-4xl font-black">Study Planner</h2>
+          <p className={`text-base font-medium ${theme.textMuted} mt-2`}>Organize your day. Tackle hard subjects early.</p>
+        </div>
+        <button onClick={() => setShowAddTaskModal(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-4 rounded-2xl font-black shadow-[0_0_25px_rgba(59,130,246,0.4)] transition-all transform hover:scale-105 text-lg">+ Add Target</button>
       </div>
-      <div className={`${theme.card} rounded-xl p-6`}>
+      <div className={`${theme.card} rounded-[2rem] p-2 overflow-hidden shadow-2xl`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className={`font-mono text-xs uppercase border-b ${isLightMode ? 'text-gray-500 border-gray-200' : 'text-gray-500 border-gray-700'}`}>
+          <table className="w-full text-left text-base">
+            <thead className={`font-mono text-sm font-black uppercase tracking-widest ${isLightMode ? 'text-slate-400 bg-slate-50' : 'text-slate-500 bg-white/5'}`}>
               <tr>
-                <th className="pb-3 font-medium">Subject & Topic</th>
-                <th className="pb-3 font-medium">Block</th>
-                <th className="pb-3 font-medium">Difficulty</th>
-                <th className="pb-3 font-medium">Target Hrs</th>
-                <th className="pb-3 font-medium">Action</th>
+                <th className="p-6 rounded-tl-[1.5rem]">Subject & Topic</th>
+                <th className="p-6">Block</th>
+                <th className="p-6">Difficulty</th>
+                <th className="p-6">Target Hrs</th>
+                <th className="p-6 rounded-tr-[1.5rem]">Action</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isLightMode ? 'divide-gray-100' : 'divide-gray-800'}`}>
+            <tbody className={`divide-y ${isLightMode ? 'divide-slate-100' : 'divide-white/5'}`}>
               {tasks.map((task) => (
-                <tr key={task.id}>
-                  <td className="py-4 font-medium">{task.subject}: <span className={theme.textMuted}>{task.topic}</span></td>
-                  <td className="py-4">{task.timeOfDay}</td>
-                  <td className="py-4"><span className={`px-2 py-1 rounded text-xs font-semibold ${task.difficulty === 'Hard' ? 'bg-red-500/10 text-red-500' : task.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-500'}`}>{task.difficulty}</span></td>
-                  <td className="py-4 font-mono">{task.duration}h</td>
-                  <td className="py-4"><button onClick={() => setTasks(tasks.filter((t) => t.id !== task.id))} className="text-red-500 hover:text-red-600 text-xs font-bold uppercase tracking-wide">Delete</button></td>
+                <tr key={task.id} className={`transition-colors hover:${isLightMode ? 'bg-slate-50' : 'bg-white/5'}`}>
+                  <td className="p-6 font-bold text-lg">{task.subject}: <span className={`font-medium ${theme.textMuted}`}>{task.topic}</span></td>
+                  <td className="p-6 font-semibold">{task.timeOfDay}</td>
+                  <td className="p-6"><span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${task.difficulty === 'Hard' ? 'bg-red-500/10 text-red-500' : task.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{task.difficulty}</span></td>
+                  <td className="p-6 font-mono font-black text-xl">{task.duration}h</td>
+                  <td className="p-6"><button onClick={() => setTasks(tasks.filter((t) => t.id !== task.id))} className="text-red-500/80 hover:text-red-500 text-sm font-black uppercase tracking-widest transition-colors bg-red-500/10 px-4 py-2 rounded-lg">Drop</button></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {tasks.length === 0 && <div className={`text-center py-16 ${theme.textMuted} font-bold text-lg`}>No targets set. Planning is the first step to clearing CA.</div>}
         </div>
       </div>
 
       {showAddTaskModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className={`${theme.cardSolid} rounded-2xl p-6 max-w-md w-full shadow-2xl`}>
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><BookOpen size={20} className="text-blue-500" /> Add Target</h3>
-            <form onSubmit={handleAddTask} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className={`text-xs mb-1 block ${theme.textMuted}`}>Subject</label><input type="text" value={newTask.subject} onChange={(e) => setNewTask({ ...newTask, subject: e.target.value })} className={`w-full rounded p-2 text-sm outline-none ${theme.input}`} required /></div>
-                <div><label className={`text-xs mb-1 block ${theme.textMuted}`}>Topic</label><input type="text" value={newTask.topic} onChange={(e) => setNewTask({ ...newTask, topic: e.target.value })} className={`w-full rounded p-2 text-sm outline-none ${theme.input}`} required /></div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-2xl flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className={`${theme.cardSolid} rounded-[2.5rem] p-10 max-w-xl w-full shadow-[0_0_50px_rgba(0,0,0,0.4)] border border-white/20`}>
+            <h3 className="text-3xl font-black mb-8 flex items-center gap-4"><BookOpen size={28} className="text-blue-500" /> Create Target</h3>
+            <form onSubmit={handleAddTask} className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div><label className={`text-xs font-black uppercase tracking-widest mb-3 block ${theme.textMuted}`}>Subject</label><input type="text" value={newTask.subject} onChange={(e) => setNewTask({ ...newTask, subject: e.target.value })} className={`w-full rounded-2xl p-4 text-lg font-bold outline-none ${theme.input}`} required placeholder="e.g. Audit" /></div>
+                <div><label className={`text-xs font-black uppercase tracking-widest mb-3 block ${theme.textMuted}`}>Topic</label><input type="text" value={newTask.topic} onChange={(e) => setNewTask({ ...newTask, topic: e.target.value })} className={`w-full rounded-2xl p-4 text-lg font-bold outline-none ${theme.input}`} required placeholder="e.g. SA 500" /></div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div><label className={`text-xs mb-1 block ${theme.textMuted}`}>Hours</label><input type="number" step="0.5" min="0.5" value={newTask.duration} onChange={(e) => setNewTask({ ...newTask, duration: Number(e.target.value) })} className={`w-full rounded p-2 text-sm outline-none ${theme.input}`} required /></div>
-                <div><label className={`text-xs mb-1 block ${theme.textMuted}`}>Level</label><select value={newTask.difficulty} onChange={(e) => setNewTask({ ...newTask, difficulty: e.target.value })} className={`w-full rounded p-2 text-sm outline-none ${theme.input}`}><option>Hard</option><option>Medium</option><option>Easy</option></select></div>
-                <div><label className={`text-xs mb-1 block ${theme.textMuted}`}>Block</label><select value={newTask.timeOfDay} onChange={(e) => setNewTask({ ...newTask, timeOfDay: e.target.value })} className={`w-full rounded p-2 text-sm outline-none ${theme.input}`}><option>Morning</option><option>Afternoon</option><option>Night</option></select></div>
+              <div className="grid grid-cols-3 gap-6">
+                <div><label className={`text-xs font-black uppercase tracking-widest mb-3 block ${theme.textMuted}`}>Hours</label><input type="number" step="0.5" min="0.5" value={newTask.duration} onChange={(e) => setNewTask({ ...newTask, duration: Number(e.target.value) })} className={`w-full rounded-2xl p-4 text-lg font-bold outline-none ${theme.input}`} required /></div>
+                <div><label className={`text-xs font-black uppercase tracking-widest mb-3 block ${theme.textMuted}`}>Level</label><select value={newTask.difficulty} onChange={(e) => setNewTask({ ...newTask, difficulty: e.target.value })} className={`w-full rounded-2xl p-4 text-lg font-bold outline-none ${theme.input}`}><option>Hard</option><option>Medium</option><option>Easy</option></select></div>
+                <div><label className={`text-xs font-black uppercase tracking-widest mb-3 block ${theme.textMuted}`}>Block</label><select value={newTask.timeOfDay} onChange={(e) => setNewTask({ ...newTask, timeOfDay: e.target.value })} className={`w-full rounded-2xl p-4 text-lg font-bold outline-none ${theme.input}`}><option>Morning</option><option>Afternoon</option><option>Night</option></select></div>
               </div>
-              <div className={`flex gap-3 mt-8 pt-4 border-t ${isLightMode ? 'border-gray-200' : 'border-gray-800'}`}>
-                <button type="button" onClick={() => setShowAddTaskModal(false)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${isLightMode ? 'bg-gray-100 hover:bg-gray-200 text-slate-700' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}`}>Cancel</button>
-                <button type="submit" className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm font-bold">Save Target</button>
+              <div className={`flex gap-5 mt-10 pt-8 border-t ${isLightMode ? 'border-slate-200' : 'border-white/10'}`}>
+                <button type="button" onClick={() => setShowAddTaskModal(false)} className={`flex-1 py-4 rounded-2xl font-black text-lg transition-colors ${isLightMode ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-slate-300'}`}>Cancel</button>
+                <button type="submit" className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-black text-lg shadow-[0_0_25px_rgba(59,130,246,0.4)]">Save Target</button>
               </div>
             </form>
           </div>
@@ -511,30 +485,50 @@ export default function CASathiApp() {
     </div>
   );
 
-  const renderPastPapers = () => {
-    const papers = [
-      { name: 'Financial Reporting (FR)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=UeoGTdCOXR9vcXrH2Ixm0zA-5qpL43ovTx6iamI8bPw=/index=HjR8OI_C92vfg2wkAKIEVBKwp0dEP3hrT8uAcW2pUOY=', icon: '📊', border: 'border-blue-500/30 hover:border-blue-500' },
-      { name: 'Advanced Financial Management', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=nzKn-ijbXOsXihFYuZuZ6-yR3O7rz5s5pFDwc0kFWXg=/index=rAymKoVQaLKzGCWL_i2PP4gzLRaKgE_1Nu8iB3d8HXo=', icon: '📈', border: 'border-green-500/30 hover:border-green-500' },
-      { name: 'Audit & Assurance', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=N8Irnu1rh71zD1hw5b1Iho579hPZG2TfcYxL3kAtmow=/index=LYlBZAJ5rzMMo-bLpeEC1z1Vu6hvFQgciswiJZR5N0I=', icon: '🔍', border: 'border-purple-500/30 hover:border-purple-500' },
-      { name: 'Direct Taxes (DT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=8y5m11WZYYQ61D94xGPF2eEcUme4g3cQivnx_Ia1v6Q=/index=diFiR7ZcZzLCkOruyZs6TF7eiQTTgt4-ZY8KPrGPalg=', icon: '💰', border: 'border-orange-500/30 hover:border-orange-500' },
-      { name: 'Indirect Taxes (IDT)', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=yiC0c50Q_LZATuRNxhKGY-vVnCmb35XHX1qJLUCg6rg=/index=V6rijQR0M1NyCnUmIud0qmSbfUsoWPbhBF1vaGYvLZo=', icon: '🏛️', border: 'border-red-500/30 hover:border-red-500' },
-      { name: 'Integrated Business Solutions', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=Wk2SeRfZ_3nIE7JER5YukXWCQAyOPdluvJ-t2L8hLSg=/index=NE6rAQ9isAAETZPXslGFhxfzuWG3zDWGYzylSlJwxNI=', icon: '💼', border: 'border-indigo-500/30 hover:border-indigo-500' },
-    ];
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Past Papers, RTPs & MTPs</h2>
-          <p className={`${theme.textMuted} text-sm`}>Access subject-wise question banks, mock tests, and revision papers directly.</p>
+  const renderMentor = () => (
+    <div className={`flex flex-col h-[calc(100vh-6rem)] ${theme.cardSolid} rounded-[2rem] overflow-hidden animate-in fade-in slide-in-from-bottom-4 shadow-2xl`}>
+      <div className={`p-6 ${isLightMode ? 'bg-slate-50/80 border-b border-slate-200' : 'bg-black/20 border-b border-white/5'} flex items-center justify-between backdrop-blur-xl`}>
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]"><BrainCircuit size={28} /></div>
+          <div><h3 className="font-black text-2xl">Expert CA Mentor</h3><p className={`text-xs font-black uppercase tracking-widest mt-1 ${theme.textMuted}`}>Powered by Audit Cubicles</p></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {papers.map((paper, index) => (
-            <a key={index} href={paper.link} target="_blank" rel="noopener noreferrer" className={`${theme.cardSolid} p-6 rounded-2xl border-2 transition-all transform hover:-translate-y-1 hover:shadow-lg ${paper.border} flex flex-col items-center text-center gap-3`}>
-              <div className="text-4xl mb-2 drop-shadow-md">{paper.icon}</div>
-              <h3 className={`font-bold text-lg leading-tight ${theme.text}`}>{paper.name}</h3>
-              <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLightMode ? 'bg-slate-100 text-slate-600' : 'bg-gray-800 text-gray-300'}`}>
-                Open Bank <ExternalLink size={14} />
-              </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-8 space-y-8">
+        {chatHistory.map((msg, i) => (
+          <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] p-6 rounded-3xl text-lg leading-relaxed whitespace-pre-wrap font-medium shadow-lg ${msg.sender === 'user' ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-sm shadow-blue-500/20' : (isLightMode ? 'bg-white border border-slate-200 rounded-bl-sm text-slate-800' : 'bg-white/5 border border-white/10 text-slate-200 rounded-bl-sm backdrop-blur-xl')}`}>
+              {msg.text}
+              <div className={`text-[11px] text-right mt-4 font-black uppercase tracking-widest ${msg.sender === 'user' ? 'text-blue-200' : theme.textMuted}`}>{msg.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleChatSubmit} className={`p-6 ${isLightMode ? 'bg-slate-50/80 border-t border-slate-200' : 'bg-black/40 border-t border-white/5'} flex gap-4 backdrop-blur-2xl`}>
+        <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask technical doubts, request strategies, or get motivation..." className={`flex-1 ${theme.input} rounded-2xl px-6 py-5 text-lg font-semibold outline-none shadow-inner`} />
+        <button type="submit" className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 rounded-2xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:scale-105 font-black"><Send size={28} /></button>
+      </form>
+    </div>
+  );
+
+  const renderFacultyNotes = () => {
+    const notes = [
+      { name: 'Financial Reporting', link: 'https://drive.google.com/drive/folders/16gN9MHrV7l9VHFFOaIrTz0IC7dl4GHIx', icon: '📘', glow: 'hover:shadow-blue-500/20' },
+      { name: 'Advanced Fin. Mgmt', link: 'https://drive.google.com/drive/folders/1xIYTwL3RLmC7ELMrZKky_Q1kdico9VqD', icon: '📗', glow: 'hover:shadow-green-500/20' },
+      { name: 'Audit & Assurance', link: 'https://drive.google.com/drive/folders/1VTFcIFznC7zpWVAWlDgY9x9NtEheBzlI', icon: '📙', glow: 'hover:shadow-purple-500/20' },
+      { name: 'Direct Taxes (DT)', link: 'https://drive.google.com/drive/folders/1j5o0WKVNtD7CxMNIrgznjfQnI4CYdheu', icon: '📕', glow: 'hover:shadow-orange-500/20' },
+      { name: 'Indirect Taxes (IDT)', link: 'https://drive.google.com/drive/folders/1Z3JYyTSpRf04QhE26sdnzkxa7qEizfDT', icon: '📓', glow: 'hover:shadow-red-500/20' },
+      { name: 'Integrated Bus. Sol.', link: 'https://drive.google.com/drive/folders/1KXTo6pobu7QKhC0TP7--g98quUFJn4rZ', icon: '📒', glow: 'hover:shadow-indigo-500/20' },
+      { name: 'SPOM Modules', link: 'https://drive.google.com/drive/folders/1bzhLGBWUn2i_A6BoprToW-S8Majk29BV', icon: '💻', glow: 'hover:shadow-cyan-500/20' },
+    ];
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+        <div><h2 className="text-4xl font-black mb-3">Faculty Notes Vault</h2><p className={`font-semibold text-lg ${theme.textMuted}`}>Top CA faculty materials & summaries in one place.</p></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {notes.map((n, i) => (
+            <a key={i} href={n.link} target="_blank" rel="noreferrer" className={`${theme.cardSolid} p-8 rounded-[2rem] transition-all transform hover:-translate-y-2 hover:shadow-2xl ${n.glow} flex flex-col items-center text-center gap-5 group border border-white/5`}>
+              <div className="text-6xl mb-2 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-xl">{n.icon}</div>
+              <h3 className="font-black text-xl leading-tight">{n.name}</h3>
+              <div className={`mt-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest flex items-center gap-3 ${isLightMode ? 'bg-blue-50 text-blue-600' : 'bg-blue-500/10 text-blue-400'} group-hover:bg-blue-500 group-hover:text-white transition-all`}>Open Drive <FolderOpen size={18} /></div>
             </a>
           ))}
         </div>
@@ -542,32 +536,24 @@ export default function CASathiApp() {
     );
   };
 
-  // --- NEW: FACULTY NOTES VAULT ---
-  const renderFacultyNotes = () => {
-    const notes = [
-      { name: 'Financial Reporting (FR)', link: 'https://drive.google.com/drive/folders/16gN9MHrV7l9VHFFOaIrTz0IC7dl4GHIx', icon: '📘', border: 'border-blue-500/30 hover:border-blue-500' },
-      { name: 'Advanced Financial Management', link: 'https://drive.google.com/drive/folders/1xIYTwL3RLmC7ELMrZKky_Q1kdico9VqD', icon: '📗', border: 'border-green-500/30 hover:border-green-500' },
-      { name: 'Audit & Assurance', link: 'https://drive.google.com/drive/folders/1VTFcIFznC7zpWVAWlDgY9x9NtEheBzlI', icon: '📙', border: 'border-purple-500/30 hover:border-purple-500' },
-      { name: 'Direct Taxes (DT)', link: 'https://drive.google.com/drive/folders/1j5o0WKVNtD7CxMNIrgznjfQnI4CYdheu', icon: '📕', border: 'border-orange-500/30 hover:border-orange-500' },
-      { name: 'Indirect Taxes (IDT)', link: 'https://drive.google.com/drive/folders/1Z3JYyTSpRf04QhE26sdnzkxa7qEizfDT', icon: '📓', border: 'border-red-500/30 hover:border-red-500' },
-      { name: 'Integrated Business Solutions', link: 'https://drive.google.com/drive/folders/1KXTo6pobu7QKhC0TP7--g98quUFJn4rZ', icon: '📒', border: 'border-indigo-500/30 hover:border-indigo-500' },
-      { name: 'SPOM', link: 'https://drive.google.com/drive/folders/1bzhLGBWUn2i_A6BoprToW-S8Majk29BV', icon: '💻', border: 'border-cyan-500/30 hover:border-cyan-500' },
+  const renderPastPapers = () => {
+    const papers = [
+      { name: 'Financial Reporting', icon: '📊', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=UeoGTdCOXR9vcXrH2Ixm0zA-5qpL43ovTx6iamI8bPw=/index=HjR8OI_C92vfg2wkAKIEVBKwp0dEP3hrT8uAcW2pUOY=' },
+      { name: 'Advanced Fin. Mgmt', icon: '📈', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=nzKn-ijbXOsXihFYuZuZ6-yR3O7rz5s5pFDwc0kFWXg=/index=rAymKoVQaLKzGCWL_i2PP4gzLRaKgE_1Nu8iB3d8HXo=' },
+      { name: 'Audit & Assurance', icon: '🔍', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=N8Irnu1rh71zD1hw5b1Iho579hPZG2TfcYxL3kAtmow=/index=LYlBZAJ5rzMMo-bLpeEC1z1Vu6hvFQgciswiJZR5N0I=' },
+      { name: 'Direct Taxes (DT)', icon: '💰', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=8y5m11WZYYQ61D94xGPF2eEcUme4g3cQivnx_Ia1v6Q=/index=diFiR7ZcZzLCkOruyZs6TF7eiQTTgt4-ZY8KPrGPalg=' },
+      { name: 'Indirect Taxes (IDT)', icon: '🏛️', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=yiC0c50Q_LZATuRNxhKGY-vVnCmb35XHX1qJLUCg6rg=/index=V6rijQR0M1NyCnUmIud0qmSbfUsoWPbhBF1vaGYvLZo=' },
+      { name: 'Integrated Bus. Sol.', icon: '💼', link: 'https://www.castudypartner.com/view/all_questions/id=ZhMn2SLrHqCWa7izgCHWVXoqv9o31c3zCd7a6BZBdRQ=/type=aBiUXQHw15Q33rsRD5ideZvMa3Oq-gDQc-p_p8a0vBU=/subject=Wk2SeRfZ_3nIE7JER5YukXWCQAyOPdluvJ-t2L8hLSg=/index=NE6rAQ9isAAETZPXslGFhxfzuWG3zDWGYzylSlJwxNI=' },
     ];
-
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Subject Wise Faculty Notes</h2>
-          <p className={`${theme.textMuted} text-sm`}>Access comprehensive study materials, summary charts, and notes of top CA faculties.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {notes.map((note, index) => (
-            <a key={index} href={note.link} target="_blank" rel="noopener noreferrer" className={`${theme.cardSolid} p-6 rounded-2xl border-2 transition-all transform hover:-translate-y-1 hover:shadow-lg ${note.border} flex flex-col items-center text-center gap-3`}>
-              <div className="text-4xl mb-2 drop-shadow-md">{note.icon}</div>
-              <h3 className={`font-bold text-lg leading-tight ${theme.text}`}>{note.name}</h3>
-              <div className={`mt-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLightMode ? 'bg-slate-100 text-slate-600' : 'bg-gray-800 text-gray-300'}`}>
-                Open Drive <FolderOpen size={14} />
-              </div>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+        <div><h2 className="text-4xl font-black mb-3">Past Papers & MTPs</h2><p className={`font-semibold text-lg ${theme.textMuted}`}>Direct access to subject-wise question banks.</p></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {papers.map((p, i) => (
+            <a key={i} href={p.link} target="_blank" rel="noreferrer" className={`${theme.cardSolid} p-8 rounded-[2rem] transition-all transform hover:-translate-y-2 hover:shadow-2xl flex flex-col items-center text-center gap-5 group border border-white/5`}>
+              <div className="text-6xl mb-2 transition-transform duration-500 group-hover:scale-110 drop-shadow-xl">{p.icon}</div>
+              <h3 className="font-black text-xl leading-tight">{p.name}</h3>
+              <div className={`mt-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest flex items-center gap-3 ${isLightMode ? 'bg-indigo-50 text-indigo-600' : 'bg-indigo-500/10 text-indigo-400'} group-hover:bg-indigo-500 group-hover:text-white transition-colors`}>Open Bank <ExternalLink size={18} /></div>
             </a>
           ))}
         </div>
@@ -576,18 +562,18 @@ export default function CASathiApp() {
   };
 
   const renderQuickNotes = () => (
-    <div className="space-y-6 overflow-y-auto max-h-[75vh] p-2 text-left">
-      <div className={`p-6 ${theme.cardSolid} rounded-3xl shadow-xl`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20"><span className="text-xl">📝</span></div>
+    <div className="space-y-6 overflow-y-auto max-h-[75vh] p-2 text-left animate-in fade-in slide-in-from-bottom-4">
+      <div className={`p-8 ${theme.cardSolid} rounded-[2.5rem] shadow-2xl border border-white/10`}>
+        <div className="flex items-center gap-5 mb-8">
+          <div className="p-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.4)] text-white"><FileText size={28} /></div>
           <div>
-            <h3 className="font-bold text-lg leading-tight uppercase tracking-wider">Quick Study Notes</h3>
-            <p className={`text-xs italic font-light ${theme.textMuted}`}>Draft temporary notes, saved locally in your browser.</p>
+            <h3 className="font-black text-2xl uppercase tracking-widest">Quick Study Notes</h3>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Draft temporary notes, auto-saved in browser.</p>
           </div>
         </div>
         <textarea
-          className={`w-full h-[50vh] p-4 rounded-xl outline-none resize-none font-sans ${theme.input}`}
-          placeholder="Enter important section numbers, audit standards, or your daily targets here..."
+          className={`w-full h-[50vh] p-6 rounded-3xl outline-none resize-none text-lg font-medium leading-relaxed ${theme.input} shadow-inner`}
+          placeholder="Start typing your rough concepts, SA summaries, or section numbers here..."
           onChange={(e) => localStorage.setItem('ca_sathi_notes', e.target.value)}
           defaultValue={localStorage.getItem('ca_sathi_notes') || ""}
         />
@@ -597,60 +583,59 @@ export default function CASathiApp() {
 
   // --- MAIN UI RENDER ---
   return (
-    <div className={`min-h-screen font-sans flex overflow-hidden transition-colors duration-300 ${theme.bg} ${theme.text}`}>
+    <div className={`min-h-screen font-sans flex overflow-hidden transition-colors duration-500 ${theme.bg} ${theme.text}`}>
       
       {/* SIDEBAR */}
-      <aside className={`w-64 border-r flex flex-col hidden md:flex transition-colors duration-300 ${theme.sidebar}`}>
-        <div className={`p-6 border-b flex flex-col items-start ${isLightMode ? 'border-slate-200' : 'border-slate-800'}`}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20">CA</div>
-            <span className="font-bold text-xl tracking-wide">Sathi.ai</span>
+      <aside className={`w-72 border-r flex flex-col hidden md:flex transition-all duration-500 ${theme.sidebar} z-10`}>
+        <div className={`p-8 border-b flex flex-col items-start ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]">CA</div>
+            <span className="font-black text-2xl tracking-wider">Sathi.ai</span>
           </div>
-          
-          <div className="w-full text-left pl-2 border-l-2 border-blue-500/50">
-            <p className={`text-[9px] uppercase tracking-widest font-semibold leading-none mb-1 ${theme.textMuted}`}>Created By</p>
-            <p className="text-sm font-bold text-blue-500 tracking-wide">Niket Talwar</p>
+          <div className="w-full text-left pl-3 border-l-4 border-blue-500 rounded-sm">
+            <p className={`text-[10px] uppercase tracking-[0.3em] font-black leading-none mb-1.5 ${theme.textMuted}`}>Created By</p>
+            <p className="text-base font-black text-blue-500 tracking-wide">Niket Talwar</p>
           </div>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-5 space-y-3 overflow-y-auto scrollbar-hide">
           {[
-            { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-            { id: 'planner', name: 'Study Planner', icon: <Calendar size={20} /> },
-            { id: 'timer', name: 'Focus Timer', icon: <TimerIcon size={20} /> },
-            { id: 'faculty_notes', name: 'Faculty Notes', icon: <FolderOpen size={20} /> },
-            { id: 'past_papers', name: 'Past Papers & MTPs', icon: <Library size={20} /> },
-            { id: 'quick_notes', name: 'Quick Notes', icon: <FileText size={20} /> },
-            { id: 'mentor', name: 'Expert CA Mentor', icon: <BrainCircuit size={20} /> },
+            { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={22} /> },
+            { id: 'planner', name: 'Study Planner', icon: <Calendar size={22} /> },
+            { id: 'timer', name: 'Focus Timer', icon: <TimerIcon size={22} /> },
+            { id: 'faculty_notes', name: 'Faculty Notes', icon: <FolderOpen size={22} /> },
+            { id: 'past_papers', name: 'Past Papers', icon: <Library size={22} /> },
+            { id: 'quick_notes', name: 'Quick Notes', icon: <FileText size={22} /> },
+            { id: 'mentor', name: 'Expert Mentor', icon: <BrainCircuit size={22} /> },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 ${
                 activeTab === item.id ? theme.activeTab : theme.hoverTab
               }`}
             >
               {item.icon}
-              <span className="font-medium text-sm">{item.name}</span>
+              <span className="font-bold text-base tracking-wide">{item.name}</span>
             </button>
           ))}
         </nav>
 
         {/* Theme Toggle Button */}
-        <div className={`p-4 border-t ${isLightMode ? 'border-slate-200' : 'border-slate-800'}`}>
+        <div className={`p-6 border-t ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
           <button 
             onClick={() => setIsLightMode(!isLightMode)}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg transition-colors font-medium text-sm ${isLightMode ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-800 text-gray-300 hover:bg-slate-700'}`}
+            className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all font-black text-sm uppercase tracking-widest ${isLightMode ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-white/5 text-gray-300 hover:bg-white/10'}`}
           >
-            {isLightMode ? <Moon size={18} /> : <Sun size={18} />}
-            {isLightMode ? 'Switch to Dark' : 'Switch to Light'}
+            {isLightMode ? <Moon size={20} /> : <Sun size={20} />}
+            {isLightMode ? 'Dark Mode' : 'Light Mode'}
           </button>
         </div>
       </aside>
 
       {/* DYNAMIC CONTENT AREA */}
-      <main className="flex-1 relative overflow-y-auto">
-        <div className="max-w-5xl mx-auto h-full p-8 pb-24">
+      <main className="flex-1 relative overflow-y-auto scrollbar-hide">
+        <div className="max-w-6xl mx-auto h-full p-10 pb-32">
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'planner' && renderPlanner()}
           {activeTab === 'timer' && renderTimer()}
