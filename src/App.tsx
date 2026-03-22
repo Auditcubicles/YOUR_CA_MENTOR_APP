@@ -17,6 +17,7 @@ import {
   Calendar,
   BrainCircuit,
   Target,
+  FileText
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
@@ -469,7 +470,8 @@ export default function CASathiApp() {
     </div>
   );
 
-  const renderNotes = () => (
+  // --- SEPARATE QUICK NOTES ---
+  const renderQuickNotes = () => (
     <div className="space-y-6 overflow-y-auto max-h-[75vh] p-2 text-left">
       <div className="p-6 bg-slate-900/80 rounded-3xl border border-yellow-500/30 shadow-2xl">
         <div className="flex items-center gap-3 mb-4">
@@ -480,21 +482,27 @@ export default function CASathiApp() {
           </div>
         </div>
         <textarea
-          className="w-full h-44 bg-slate-800/40 text-gray-100 p-4 rounded-xl border border-white/5 focus:border-yellow-500/50 outline-none resize-none placeholder:text-gray-600"
-          placeholder="Enter important section numbers, audit standards, or targets..."
+          className="w-full h-[50vh] bg-slate-800/40 text-gray-100 p-4 rounded-xl border border-white/5 focus:border-yellow-500/50 outline-none resize-none placeholder:text-gray-600 font-sans"
+          placeholder="Enter important section numbers, audit standards, or your daily targets here..."
           onChange={(e) => localStorage.setItem('ca_sathi_notes', e.target.value)}
           defaultValue={localStorage.getItem('ca_sathi_notes') || ""}
         />
       </div>
-      <div className="flex flex-col items-center justify-center py-10 text-center bg-slate-900/40 rounded-3xl border-2 border-dashed border-purple-500/20">
-        <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center border border-purple-500/40 mb-4">
-          <span className="text-3xl animate-bounce">🚀</span>
-        </div>
-        <h2 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">Active Recall Engine</h2>
-        <p className="text-gray-400 text-sm max-w-[280px] mx-auto font-light leading-relaxed">
-          AI-driven conceptual testing is under development. Follow <span className="text-purple-400 font-semibold italic">Audit Cubicles</span> for the release.
-        </p>
+    </div>
+  );
+
+  // --- SEPARATE ACTIVE RECALL ---
+  const renderActiveRecall = () => (
+    <div className="h-[60vh] flex flex-col items-center justify-center py-10 text-center bg-slate-900/40 rounded-3xl border-2 border-dashed border-purple-500/20">
+      <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center border border-purple-500/40 mb-6 shadow-[0_0_20px_rgba(147,51,234,0.3)]">
+        <span className="text-4xl animate-bounce">🚀</span>
       </div>
+      <h2 className="text-2xl font-bold text-white mb-3 uppercase tracking-wide">Active Recall Engine</h2>
+      <p className="text-gray-400 text-base max-w-[350px] mx-auto font-light leading-relaxed">
+        AI-driven conceptual testing and MCQ analysis are currently under development. 
+        <br/><br/>
+        Follow <span className="text-purple-400 font-semibold italic border-b border-purple-400/50 pb-0.5">Audit Cubicles</span> for the official release.
+      </p>
     </div>
   );
 
@@ -502,16 +510,18 @@ export default function CASathiApp() {
   return (
     <div className="min-h-screen bg-[#0a0f1c] text-slate-200 font-sans flex overflow-hidden">
       
-      {/* SIDEBAR WITH YOUR BRANDING */}
+      {/* SIDEBAR WITH LEFT-ALIGNED BRANDING */}
       <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-slate-800">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-black text-white">CA</div>
-            <span className="font-bold text-lg tracking-wide text-white">Sathi.ai</span>
+        <div className="p-6 border-b border-slate-800 flex flex-col items-start">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20">CA</div>
+            <span className="font-bold text-xl tracking-wide text-white">Sathi.ai</span>
           </div>
-          <div className="mt-2 px-1 mb-2">
-            <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold leading-none">Created by</p>
-            <p className="text-xs font-semibold text-blue-400 mt-1 uppercase">Niket Talwar</p>
+          
+          {/* Properly Left-Aligned Name Block */}
+          <div className="w-full text-left pl-2 border-l-2 border-blue-500/50">
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest font-semibold leading-none mb-1">Created By</p>
+            <p className="text-sm font-bold text-blue-400 tracking-wide">Niket Talwar</p>
           </div>
         </div>
         
@@ -520,8 +530,9 @@ export default function CASathiApp() {
             { id: 'dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20} /> },
             { id: 'planner', name: 'Study Planner', icon: <Calendar size={20} /> },
             { id: 'timer', name: 'Focus Timer', icon: <TimerIcon size={20} /> },
+            { id: 'quick_notes', name: 'Quick Notes', icon: <FileText size={20} /> },
+            { id: 'active_recall', name: 'Active Recall', icon: <BookOpen size={20} /> },
             { id: 'mentor', name: 'Mentor Chat', icon: <MessageSquare size={20} /> },
-            { id: 'notes', name: 'Active Recall', icon: <BookOpen size={20} /> },
           ].map((item) => (
             <button
               key={item.id}
@@ -545,8 +556,9 @@ export default function CASathiApp() {
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'planner' && renderPlanner()}
           {activeTab === 'timer' && renderTimer()}
+          {activeTab === 'quick_notes' && renderQuickNotes()}
+          {activeTab === 'active_recall' && renderActiveRecall()}
           {activeTab === 'mentor' && renderMentor()}
-          {activeTab === 'notes' && renderNotes()}
         </div>
       </main>
       
