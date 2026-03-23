@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CalendarCheck, Timer as TimerIcon, MessageSquare, TrendingUp, BookOpen,
   AlertTriangle, CheckCircle, XCircle, Play, Pause, RotateCcw, Send, Flame, Calendar,
   BrainCircuit, Target, FileText, Sun, Moon, Maximize, Minimize, Library, ExternalLink, 
-  FolderOpen, StopCircle, Clock, BarChart2, CloudRain, Trees, Waves, Bell, Zap
+  FolderOpen, StopCircle, Clock, BarChart2, Bell, Zap, Headphones
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
@@ -85,12 +85,10 @@ export default function CASathiApp() {
   const [isActive, setIsActive] = useState(false);
   const [showSessionLog, setShowSessionLog] = useState(false);
   const [timerDisplayType, setTimerDisplayType] = useLocalStorage('ca-timer-display', 'digital'); 
-  const [activeSound, setActiveSound] = useState(null); 
+  const [activeSound, setActiveSound] = useState(false); 
   
-  // 3 Independent Audio Refs (Crash-proof Audio)
-  const rainRef = useRef(null);
-  const forestRef = useRef(null);
-  const wavesRef = useRef(null);
+  // Single Audio Ref for Lo-Fi Focus Music
+  const lofiRef = useRef(null);
   
   const timerRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -146,30 +144,20 @@ export default function CASathiApp() {
     catch (e) { console.error(e); }
   };
 
-  // --- 100% RELIABLE SOUND LOGIC ---
-  const toggleSound = (soundType) => {
-    // 1. Pause everything first
-    [rainRef, forestRef, wavesRef].forEach(ref => {
-      if (ref.current) ref.current.pause();
-    });
-
-    // 2. If clicking the same button, just turn it off
-    if (activeSound === soundType) {
-      setActiveSound(null);
-      return;
-    }
-
-    // 3. Play the selected sound
-    const audioRefs = { rain: rainRef, forest: forestRef, waves: wavesRef };
-    const selectedAudio = audioRefs[soundType]?.current;
-
-    if (selectedAudio) {
-      selectedAudio.volume = 0.4;
-      selectedAudio.play().catch(e => {
-        console.error("Audio blocked:", e);
-        triggerToast("Please click again. Browser blocked audio.", <AlertTriangle size={18}/>);
-      });
-      setActiveSound(soundType);
+  // --- GUARANTEED LO-FI LOGIC ---
+  const toggleSound = () => {
+    if (activeSound) {
+      lofiRef.current?.pause();
+      setActiveSound(false);
+    } else {
+      if (lofiRef.current) {
+        lofiRef.current.volume = 0.3; // Gentle volume for study
+        lofiRef.current.play().catch(e => {
+          console.error("Audio blocked:", e);
+          triggerToast("Browser blocked auto-play. Please click again.", <AlertTriangle size={18}/>);
+        });
+      }
+      setActiveSound(true);
     }
   };
 
@@ -178,10 +166,8 @@ export default function CASathiApp() {
     setToastMessage(msg);
     setToastIcon(icon);
     
-    // Clear previous timer if exists
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     
-    // Set strictly to 15 seconds (15000 ms)
     toastTimerRef.current = setTimeout(() => {
       setToastMessage(null);
     }, 15000); 
@@ -325,7 +311,6 @@ export default function CASathiApp() {
   const renderDashboard = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* Aesthetic Exam Countdown Header */}
       <div className={`relative overflow-hidden rounded-3xl p-8 ${isLightMode ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-red-100' : 'bg-gradient-to-br from-red-950/40 to-[#2a0808] border border-red-900/30'} shadow-xl`}>
         <div className={`absolute -top-24 -right-24 w-72 h-72 ${isLightMode ? 'bg-red-400/20' : 'bg-red-600/20'} rounded-full blur-[80px]`}></div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10 gap-6">
@@ -351,7 +336,6 @@ export default function CASathiApp() {
         </div>
       </div>
 
-      {/* Floating Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className={`${theme.card} p-6 rounded-3xl flex flex-col justify-between transition-all hover:-translate-y-1 duration-300`}>
           <div className="flex items-center gap-4 mb-4">
@@ -514,10 +498,8 @@ export default function CASathiApp() {
   const renderTimer = () => (
     <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all duration-300 animate-in fade-in ${isFullScreen ? (isLightMode ? 'bg-[#FAFAFA]' : 'bg-[#09090B]') : ''}`}>
       
-      {/* 3 INDEPENDENT AUDIO PLAYERS TO PREVENT BROWSER ERRORS */}
-      <audio ref={rainRef} src="https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3" loop />
-      <audio ref={forestRef} src="https://assets.mixkit.co/active_storage/sfx/2502/2502-preview.mp3" loop />
-      <audio ref={wavesRef} src="https://assets.mixkit.co/active_storage/sfx/116/116-preview.mp3" loop />
+      {/* SINGLE LO-FI AUDIO PLAYER */}
+      <audio ref={lofiRef} src="https://assets.mixkit.co/music/preview/mixkit-sleepy-cat-135.mp3" loop />
       
       <button onClick={toggleFullScreen} className={`absolute top-6 right-6 p-2.5 rounded-xl transition-all ${isLightMode ? 'text-slate-500 hover:bg-white shadow-sm' : 'text-slate-400 hover:bg-white/10'}`} title={isFullScreen ? "Exit Fullscreen" : "Go Fullscreen"}>
         {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
@@ -525,21 +507,14 @@ export default function CASathiApp() {
 
       <div className="text-center w-full max-w-xl px-4">
         
-        {/* GUARANTEED SOUNDS (MIXKIT MP3s) */}
+        {/* LO-FI FOCUS BUTTON */}
         <div className={`flex justify-center items-center gap-3 mb-8`}>
-          {[
-            { id: 'rain', icon: <CloudRain size={16} />, label: 'Rain' },
-            { id: 'forest', icon: <Trees size={16} />, label: 'Nature' },
-            { id: 'waves', icon: <Waves size={16} />, label: 'Waves' }
-          ].map(sound => (
             <button 
-              key={sound.id}
-              onClick={() => toggleSound(sound.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${activeSound === sound.id ? 'bg-blue-500/10 text-blue-500 border-blue-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500' : 'bg-black/20 border-white/5 text-zinc-400'}`}`}
+              onClick={toggleSound}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${activeSound ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}
             >
-              {sound.icon} {sound.label}
+              <Headphones size={18} /> {activeSound ? 'Pause Lo-Fi' : 'Play Focus Lo-Fi'}
             </button>
-          ))}
         </div>
 
         <h2 className={`text-xs font-bold mb-6 uppercase tracking-[0.3em] ${theme.textMuted}`}>
@@ -828,11 +803,11 @@ export default function CASathiApp() {
         </div>
       </main>
 
-      {/* SMART TOAST NOTIFICATION (15 SECONDS) */}
+      {/* SMART TOAST NOTIFICATION (15 SECONDS LOCKED) */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-500">
           <div className={`${theme.cardSolid} border shadow-2xl rounded-2xl p-5 flex items-start gap-4 max-w-sm`}>
-            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl shadow-inner mt-1">{toastIcon || <Bell size={20} />}</div>
+            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl shadow-inner mt-1">{toastIcon}</div>
             <p className={`text-sm font-bold leading-relaxed ${theme.text}`}>{toastMessage}</p>
           </div>
         </div>
