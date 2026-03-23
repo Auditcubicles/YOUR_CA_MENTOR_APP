@@ -66,9 +66,8 @@ export default function CASathiApp() {
   const [hoursStudiedToday, setHoursStudiedToday] = useLocalStorage('ca-hoursToday', 0);
   const [streak, setStreak] = useLocalStorage('ca-streak', 0);
   const [studyHistory, setStudyHistory] = useLocalStorage('ca-study-history', {}); 
-  const [subjectMastery, setSubjectMastery] = useLocalStorage('ca-subject-mastery', {}); // Subject stats tracking
+  const [subjectMastery, setSubjectMastery] = useLocalStorage('ca-subject-mastery', {}); 
   
-  // Brain Dump and Goal States
   const [eodTargets, setEodTargets] = useLocalStorage('ca-eod-targets', ['', '', '']);
   const [yesterdaysBrainDump, setYesterdaysBrainDump] = useLocalStorage('ca-yesterday-targets', ['', '', '']);
   const [showEODModal, setShowEODModal] = useState(false);
@@ -105,7 +104,6 @@ export default function CASathiApp() {
     const lastLogin = localStorage.getItem('ca-lastLogin');
 
     if (lastLogin !== todayStr) {
-      // EOD Ritual Check
       setYesterdaysBrainDump(eodTargets);
       setEodTargets(['', '', '']);
       setHoursStudiedToday(0); 
@@ -148,13 +146,10 @@ export default function CASathiApp() {
     catch (e) { console.error(e); }
   };
 
-  // --- RELIABLE AUDIO PLAYER ---
   const toggleLofi = () => {
     if (!lofiRef.current) return;
     if (isLofiPlaying) { lofiRef.current.pause(); setIsLofiPlaying(false); } 
-    else { lofiRef.current.play().then(() => setIsLofiPlaying(true)).catch(e => {
-        triggerToast("Browser blocked sound. Please press Play again.", <AlertTriangle size={18}/>);
-    }); }
+    else { lofiRef.current.volume = 0.4; lofiRef.current.play().then(() => setIsLofiPlaying(true)).catch(e => triggerToast("Browser blocked auto-play.", <AlertTriangle size={18}/>)); }
   };
 
   const triggerToast = (msg, icon = <Bell size={18} />) => {
@@ -264,16 +259,15 @@ export default function CASathiApp() {
     setNewTask({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
   };
 
-  // GAMIFICATION LOGIC
+  // GAMIFICATION LOGIC (Added Subject Checks)
   const toggleTaskStatus = (id) => {
     setTasks(tasks.map((t) => {
       if (t.id === id) {
         const newStatus = t.status === 'pending' ? 'completed' : t.status === 'completed' ? 'partial' : 'pending';
-        // Add to subject mastery
         if (newStatus === 'completed' && t.status !== 'completed') {
           const subj = t.subject.toUpperCase();
           setSubjectMastery(prev => ({ ...prev, [subj]: (prev[subj] || 0) + 1 }));
-          triggerToast(`Task completed! +1 to ${t.subject} mastery.`, <Trophy size={18} className="text-yellow-500" />);
+          triggerToast(`Task completed! Progressing in ${t.subject}.`, <Trophy size={18} className="text-yellow-500" />);
         }
         return { ...t, status: newStatus };
       }
@@ -286,73 +280,75 @@ export default function CASathiApp() {
     const hasYesterdaysDump = yesterdaysBrainDump.some(t => t.trim() !== '');
 
     const countdownOrb = (
-      <div className={`p-8 ${theme.cardSolid} rounded-[2rem] border border-white/5 flex flex-col items-center gap-6 text-center`}>
+      <div className={`p-8 ${theme.cardSolid} rounded-[2rem] border border-white/5 flex flex-col items-center justify-center gap-6 text-center shadow-xl`}>
         <h2 className="text-red-500 font-bold tracking-[0.2em] text-[10px] uppercase drop-shadow-sm whitespace-nowrap">Mission CA Final</h2>
-        <div className="relative w-40 h-40 flex items-center justify-center rounded-full bg-slate-900 border-[20px] border-slate-800 shadow-[0_0_50px_rgba(255,255,255,0.05),_inset_0_0_30px_rgba(255,255,255,0.02)]">
+        <div className="relative w-44 h-44 flex items-center justify-center rounded-full bg-slate-900 border-[16px] border-slate-800 shadow-[0_0_50px_rgba(255,255,255,0.05),_inset_0_0_30px_rgba(255,255,255,0.02)]">
           <svg viewBox="0 0 36 36" className="absolute inset-0 w-full h-full transform -rotate-90">
-            <path className="text-red-950/30" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-            <path className="text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.7)]" strokeDasharray={`${Math.min(100, (daysLeft/120)*100)}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            <path className="text-red-950/30" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
+            <path className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]" strokeDasharray={`${Math.min(100, (daysLeft/120)*100)}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
-          <div className="flex flex-col items-baseline gap-1">
-            <span className={`text-6xl font-black tracking-tighter ${isLightMode ? 'text-slate-900' : 'text-white'}`}>{daysLeft}</span>
-            <span className={`text-[10px] ${theme.textMuted} font-medium uppercase tracking-widest`}>Days Left</span>
+          <div className="flex flex-col items-center gap-1 z-10">
+            <span className={`text-6xl font-black tracking-tighter ${isLightMode ? 'text-slate-100' : 'text-white'}`}>{daysLeft}</span>
+            <span className={`text-[10px] text-slate-400 font-bold uppercase tracking-widest`}>Days Left</span>
           </div>
         </div>
-        <p className={`text-sm font-medium leading-relaxed ${isLightMode ? 'text-red-700' : 'text-red-200/90'} max-w-xs`}>"{motivationalQuotes[0]}"</p>
+        <p className={`text-sm font-medium leading-relaxed ${isLightMode ? 'text-slate-600' : 'text-slate-300'} max-w-xs italic`}>"{motivationalQuotes[0]}"</p>
       </div>
     );
 
     const adjustGoals = (
-      <div className={`flex flex-col gap-6`}>
-        <div className={`backdrop-blur-2xl p-6 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-sm' : 'bg-white/5 border-white/10 shadow-lg'}`}>
-          <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-3`}>Edit Target Date</div>
-          <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`${theme.input} w-full rounded-xl px-4 py-3 font-mono text-sm focus:outline-none cursor-pointer`} />
+      <div className={`flex flex-col gap-6 w-full`}>
+        <div className={`p-6 rounded-[2rem] border transition-all ${isLightMode ? 'bg-white shadow-sm border-slate-200' : 'bg-white/5 border-white/10 shadow-lg'}`}>
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-3 flex items-center gap-2`}><Calendar size={14}/> Target Date</div>
+          <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`${theme.input} w-full rounded-xl px-4 py-3.5 font-mono text-sm focus:outline-none cursor-pointer`} />
         </div>
-        <div className={`backdrop-blur-2xl p-6 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-sm' : 'bg-white/5 border-white/10 shadow-lg'}`}>
-          <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-3`}>Edit Daily Hrs Goal</div>
-          <input type="number" min="1" max="24" value={targetHours} onChange={(e) => setTargetHours(e.target.value)} className={`${theme.input} w-full rounded-xl px-4 py-3 font-mono text-sm focus:outline-none cursor-pointer`} />
+        <div className={`p-6 rounded-[2rem] border transition-all ${isLightMode ? 'bg-white shadow-sm border-slate-200' : 'bg-white/5 border-white/10 shadow-lg'}`}>
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-3 flex items-center gap-2`}><Target size={14}/> Daily Hrs Goal</div>
+          <input type="number" min="1" max="24" value={targetHours} onChange={(e) => setTargetHours(e.target.value)} className={`${theme.input} w-full rounded-xl px-4 py-3.5 font-mono text-sm focus:outline-none cursor-pointer`} />
         </div>
       </div>
     );
 
     const actionCenter = (
-      <div className={`relative p-8 ${theme.cardSolid} rounded-[2rem] border border-white/5 flex flex-col justify-between`}>
+      <div className={`relative p-8 ${theme.cardSolid} rounded-[2rem] border border-white/5 flex flex-col justify-between h-full shadow-xl`}>
         <div>
-          <h3 className="text-xl font-bold flex items-center gap-2.5 mb-2"><MoonStar className="text-blue-500" size={24} /> EOD Ritual</h3>
-          <p className={`text-xs font-medium ${theme.textMuted} leading-relaxed max-w-sm mb-6`}>Log your session output, set tomorrow's top 3 targets, and clear your headspace.</p>
-          <ul className="space-y-2.5">
-            {eodTargets.some(t => t.trim() !== '') ? eodTargets.filter(t => t.trim() !== '').map((t, idx) => (
-                <li key={idx} className={`text-sm font-semibold flex items-center gap-2.5 ${theme.text}`}><Zap className="text-yellow-500" size={16}/> {t}</li>
-            )) : <p className="text-sm font-medium text-slate-500">Tomorrow's targets not set yet.</p>}
-          </ul>
+          <h3 className="text-xl font-bold flex items-center gap-3 mb-3"><MoonStar className="text-blue-500" size={24} /> EOD Ritual</h3>
+          <p className={`text-sm font-medium ${theme.textMuted} leading-relaxed mb-6`}>Log your session output, clear your headspace, and lock in tomorrow's targets.</p>
+          <div className={`p-4 rounded-2xl ${isLightMode ? 'bg-blue-50' : 'bg-blue-500/10'} border border-blue-500/20`}>
+            <ul className="space-y-3">
+              {eodTargets.some(t => t.trim() !== '') ? eodTargets.filter(t => t.trim() !== '').map((t, idx) => (
+                  <li key={idx} className={`text-sm font-semibold flex items-center gap-3 ${theme.text}`}><div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div> {t}</li>
+              )) : <p className="text-sm font-medium text-slate-500 italic">No targets set for tomorrow.</p>}
+            </ul>
+          </div>
         </div>
-        <button onClick={() => setShowEODModal(true)} className="w-full py-4.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-500/20 font-bold text-sm transition-all transform hover:scale-105 flex items-center justify-center gap-2 mt-8">
+        <button onClick={() => setShowEODModal(true)} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-500/30 font-bold text-sm transition-all transform hover:scale-105 flex items-center justify-center gap-2 mt-8">
             <Send size={18} /> End Day & Brain Dump
         </button>
       </div>
     );
 
     return (
-      <div className="space-y-10 animate-in fade-in duration-500">
+      <div className="space-y-8 animate-in fade-in duration-500">
         
-        {/* NEW 3-CARD LAYOUT OVERHAUL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* NEW DASHBOARD LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {countdownOrb}
             {adjustGoals}
             {actionCenter}
         </div>
 
-        {/* YESTERDAY'S BRAIN DUMP DISPLAY */}
+        {/* YESTERDAY'S DUMP */}
         {hasYesterdaysDump && (
-          <div className={`${theme.card} p-8 rounded-3xl`}>
+          <div className={`${theme.card} p-8 rounded-3xl shadow-lg`}>
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold flex items-center gap-3"><FileText size={22} className="text-emerald-500" /> Imported Brain Dump</h3>
-                <button onClick={() => setYesterdaysBrainDump(['','',''])} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest bg-black/10 px-3 py-1.5 rounded-lg">Clear List</button>
+                <h3 className="text-xl font-bold flex items-center gap-3"><FileText size={22} className="text-emerald-500" /> Yesterday's Brain Dump</h3>
+                <button onClick={() => setYesterdaysBrainDump(['','',''])} className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest bg-black/10 hover:bg-red-500/10 px-3 py-2 rounded-lg">Clear</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {yesterdaysBrainDump.filter(t => t.trim() !== '').map((t, idx) => (
-                  <div key={idx} className={`${theme.cardSolid} rounded-xl p-5 border border-emerald-500/20 shadow-lg shadow-emerald-500/5`}>
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-2.5">Task {idx+1}</div>
+                  <div key={idx} className={`${theme.cardSolid} rounded-2xl p-5 border border-emerald-500/20 shadow-lg shadow-emerald-500/5`}>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-2">Target {idx+1}</div>
                       <div className={`text-sm font-semibold ${theme.text}`}>{t}</div>
                   </div>
               ))}
@@ -414,8 +410,8 @@ export default function CASathiApp() {
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setShowEODModal(false)} className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-colors ${isLightMode ? 'bg-slate-100 text-slate-700' : 'bg-white/5 text-slate-300'}`}>Cancel</button>
-                <button onClick={() => { setShowEODModal(false); triggerToast("Targets saved! Have a good sleep.", <MoonStar size={18}/>); }} className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 transition-all">Save & Sleep</button>
+                <button onClick={() => setShowEODModal(false)} className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-colors ${isLightMode ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>Cancel</button>
+                <button onClick={() => { setShowEODModal(false); triggerToast("Targets saved! Have a good sleep.", <MoonStar size={18}/>); }} className="flex-1 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 transition-all">Save & Sleep</button>
               </div>
             </div>
           </div>
@@ -423,6 +419,80 @@ export default function CASathiApp() {
       </div>
     );
   };
+
+  const renderPlanner = () => (
+    <div className="space-y-6 relative animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Study Planner</h2>
+          <p className={`text-sm font-medium ${theme.textMuted} mt-1`}>Organize your day, track progress, and crush your targets.</p>
+        </div>
+        <button onClick={() => setShowAddTaskModal(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all transform hover:scale-105 text-sm">+ Add Target</button>
+      </div>
+
+      <div className={`${theme.card} rounded-3xl p-6 lg:p-8 shadow-xl`}>
+        <div className="space-y-4">
+          {tasks.map((task) => (
+            <div key={task.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-5 ${theme.cardSolid} rounded-2xl border transition-all hover:border-blue-500/50 hover:shadow-md gap-4`}>
+              <div className="flex items-center gap-5">
+                <button onClick={() => toggleTaskStatus(task.id)} className="transition-transform hover:scale-110 shrink-0">
+                  {task.status === 'completed' && <CheckCircle className="text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]" size={28} />}
+                  {task.status === 'partial' && <AlertTriangle className="text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.4)]" size={28} />}
+                  {task.status === 'pending' && <div className={`w-7 h-7 rounded-full border-[2px] ${isLightMode ? 'border-slate-300' : 'border-slate-600'}`}></div>}
+                </button>
+                <div>
+                  <div className="font-bold text-lg flex items-center gap-3 flex-wrap">
+                    {task.subject}: <span className="font-medium opacity-80">{task.topic}</span>
+                    <span className={`text-[10px] px-3 py-1 rounded-full uppercase font-black tracking-widest ${task.difficulty === 'Hard' ? 'bg-red-500/10 text-red-500' : task.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{task.difficulty}</span>
+                  </div>
+                  <div className={`text-sm font-semibold ${theme.textMuted} mt-1.5`}>{task.timeOfDay} Block • {task.duration} Hours</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 sm:ml-auto">
+                <button onClick={() => setTasks(tasks.filter((t) => t.id !== task.id))} className={`text-red-500/80 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors bg-red-500/10 hover:bg-red-500/20 px-4 py-2.5 rounded-xl`}>Drop</button>
+                
+                {task.status === 'completed' ? (
+                  <span className="text-xs font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-5 py-2.5 rounded-xl text-center">Logged</span>
+                ) : (
+                  <button onClick={() => setActiveTab('timer')} className="text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 whitespace-nowrap">Start Session</button>
+                )}
+              </div>
+            </div>
+          ))}
+          {tasks.length === 0 && (
+            <div className={`text-center py-16 ${theme.textMuted}`}>
+              <Target size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="font-bold text-lg">Your desk is clean.</p>
+              <p className="text-sm mt-1">Planning is the first step to clearing CA. Add a target.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showAddTaskModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className={`${theme.cardSolid} rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-white/10`}>
+            <h3 className="text-2xl font-bold mb-6 flex items-center gap-3"><BookOpen size={24} className="text-blue-500" /> Create Target</h3>
+            <form onSubmit={handleAddTask} className="space-y-5">
+              <div className="grid grid-cols-2 gap-5">
+                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Subject</label><input type="text" value={newTask.subject} onChange={(e) => setNewTask({ ...newTask, subject: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`} required placeholder="e.g. Audit" /></div>
+                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Topic</label><input type="text" value={newTask.topic} onChange={(e) => setNewTask({ ...newTask, topic: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`} required placeholder="e.g. SA 500" /></div>
+              </div>
+              <div className="grid grid-cols-3 gap-5">
+                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Hours</label><input type="number" step="0.5" min="0.5" value={newTask.duration} onChange={(e) => setNewTask({ ...newTask, duration: Number(e.target.value) })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`} required /></div>
+                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Level</label><select value={newTask.difficulty} onChange={(e) => setNewTask({ ...newTask, difficulty: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`}><option>Hard</option><option>Medium</option><option>Easy</option></select></div>
+                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Block</label><select value={newTask.timeOfDay} onChange={(e) => setNewTask({ ...newTask, timeOfDay: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`}><option>Morning</option><option>Afternoon</option><option>Night</option></select></div>
+              </div>
+              <div className={`flex gap-4 mt-8 pt-6 border-t ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
+                <button type="button" onClick={() => setShowAddTaskModal(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-colors ${isLightMode ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-slate-300'}`}>Cancel</button>
+                <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20">Save Target</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const renderTimer = () => {
     // --- ULTRA ZEN MODE ---
@@ -492,8 +562,12 @@ export default function CASathiApp() {
 
         <div className="text-center w-full max-w-xl px-4">
           
+          {/* --- LO-FI SOUND BUTTON --- */}
           <div className="flex justify-center items-center mb-8">
-            <button onClick={toggleLofi} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${isLofiPlaying ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}>
+            <button 
+              onClick={toggleLofi}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${isLofiPlaying ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}
+            >
               <Headphones size={18} /> {isLofiPlaying ? 'Pause Lo-Fi Music' : 'Play Focus Lo-Fi'}
             </button>
           </div>
@@ -503,8 +577,12 @@ export default function CASathiApp() {
           </h2>
           
           <div className={`flex justify-center items-center gap-1.5 mb-8 p-1 rounded-xl border w-fit mx-auto backdrop-blur-md ${isLightMode ? 'bg-slate-100 border-slate-200' : 'bg-black/20 border-white/5'}`}>
-            <button onClick={() => setTimerDisplayType('digital')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'digital' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}><TimerIcon size={16} /> Digital</button>
-            <button onClick={() => setTimerDisplayType('analog')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'analog' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}><Clock size={16} /> Analog</button>
+            <button onClick={() => setTimerDisplayType('digital')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'digital' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}>
+              <TimerIcon size={16} /> Digital
+            </button>
+            <button onClick={() => setTimerDisplayType('analog')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'analog' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}>
+              <Clock size={16} /> Analog
+            </button>
           </div>
 
           {!isActive && !isFullScreen && (
@@ -521,7 +599,9 @@ export default function CASathiApp() {
           )}
 
           {timerDisplayType === 'digital' ? (
-            <div className={`text-[6rem] md:text-[9rem] font-bold font-mono tracking-tighter leading-none mb-12 drop-shadow-xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]') : theme.textMuted}`}>{formatTime(timeLeft)}</div>
+            <div className={`text-[6rem] md:text-[9rem] font-bold font-mono tracking-tighter leading-none mb-12 drop-shadow-xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]') : theme.textMuted}`}>
+              {formatTime(timeLeft)}
+            </div>
           ) : (
             <div className="relative flex flex-col items-center justify-center mb-10 w-full">
               <svg width="240" height="240" viewBox="0 0 100 100" className="drop-shadow-2xl mx-auto">
@@ -536,10 +616,17 @@ export default function CASathiApp() {
           )}
           
           <div className="flex justify-center items-center gap-6 mb-10">
-            <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? (Number(workDuration)||50) * 60 : (Number(breakDuration)||10) * 60); }} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer"><RotateCcw size={20} /></button>
-            <button onClick={() => setIsActive(!isActive)} className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.4)]'}`}>{isActive ? <Pause size={32} /> : <Play size={32} className="ml-2" />}
+            <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? (Number(workDuration)||50) * 60 : (Number(breakDuration)||10) * 60); }} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer">
+              <RotateCcw size={20} />
             </button>
-            <button onClick={handleStopSession} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-50' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time"><StopCircle size={24} /></button>
+
+            <button onClick={() => setIsActive(!isActive)} className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.4)]'}`}>
+              {isActive ? <Pause size={32} /> : <Play size={32} className="ml-2" />}
+            </button>
+
+            <button onClick={handleStopSession} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-50' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time">
+              <StopCircle size={24} />
+            </button>
           </div>
 
           {!isFullScreen && (
@@ -571,68 +658,12 @@ export default function CASathiApp() {
     );
   };
 
-  const renderPlanner = () => (
-    <div className="space-y-6 relative animate-in fade-in duration-500">
-      <div className="flex justify-between items-center mb-2">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Study Planner</h2>
-          <p className={`text-sm font-medium ${theme.textMuted} mt-1`}>Organize your day. Tackle hard subjects early.</p>
-        </div>
-        <button onClick={() => setShowAddTaskModal(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all transform hover:scale-105 text-sm">+ Add Target</button>
-      </div>
-      <div className={`${theme.card} rounded-3xl p-2 overflow-hidden shadow-xl`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className={`font-mono text-xs font-bold uppercase tracking-wider ${isLightMode ? 'text-slate-500 bg-slate-50/50' : 'text-slate-400 bg-white/5'}`}>
-              <tr><th className="p-5 rounded-tl-2xl">Subject & Topic</th><th className="p-5">Block</th><th className="p-5">Difficulty</th><th className="p-5">Target Hrs</th><th className="p-5 rounded-tr-2xl">Action</th></tr>
-            </thead>
-            <tbody className={`divide-y ${isLightMode ? 'divide-slate-100' : 'divide-white/5'}`}>
-              {tasks.map((task) => (
-                <tr key={task.id} className={`transition-colors hover:${isLightMode ? 'bg-slate-50' : 'bg-white/5'}`}>
-                  <td className="p-5 font-semibold text-base">{task.subject}: <span className={`font-normal ${theme.textMuted}`}>{task.topic}</span></td>
-                  <td className="p-5 font-medium">{task.timeOfDay}</td>
-                  <td className="p-5"><span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${task.difficulty === 'Hard' ? 'bg-red-500/10 text-red-500' : task.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>{task.difficulty}</span></td>
-                  <td className="p-5 font-mono font-bold text-lg">{task.duration}h</td>
-                  <td className="p-5"><button onClick={() => setTasks(tasks.filter((t) => t.id !== task.id))} className="text-red-500/80 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors bg-red-500/10 px-3 py-1.5 rounded-md">Drop</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {tasks.length === 0 && <div className={`text-center py-12 ${theme.textMuted} font-medium text-sm`}>No targets set. Planning is the first step to clearing CA.</div>}
-        </div>
-      </div>
-
-      {showAddTaskModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in zoom-in-95 duration-300">
-          <div className={`${theme.cardSolid} rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-white/10`}>
-            <h3 className="text-2xl font-bold mb-6 flex items-center gap-3"><BookOpen size={24} className="text-blue-500" /> Create Target</h3>
-            <form onSubmit={handleAddTask} className="space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Subject</label><input type="text" value={newTask.subject} onChange={(e) => setNewTask({ ...newTask, subject: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`} required placeholder="e.g. Audit" /></div>
-                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Topic</label><input type="text" value={newTask.topic} onChange={(e) => setNewTask({ ...newTask, topic: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`} required placeholder="e.g. SA 500" /></div>
-              </div>
-              <div className="grid grid-cols-3 gap-5">
-                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Hours</label><input type="number" step="0.5" min="0.5" value={newTask.duration} onChange={(e) => setNewTask({ ...newTask, duration: Number(e.target.value) })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`} required /></div>
-                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Level</label><select value={newTask.difficulty} onChange={(e) => setNewTask({ ...newTask, difficulty: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`}><option>Hard</option><option>Medium</option><option>Easy</option></select></div>
-                <div><label className={`text-[10px] font-bold uppercase tracking-widest mb-2 block ${theme.textMuted}`}>Block</label><select value={newTask.timeOfDay} onChange={(e) => setNewTask({ ...newTask, timeOfDay: e.target.value })} className={`w-full rounded-xl p-3 text-sm font-medium outline-none ${theme.input}`}><option>Morning</option><option>Afternoon</option><option>Night</option></select></div>
-              </div>
-              <div className={`flex gap-4 mt-8 pt-6 border-t ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
-                <button type="button" onClick={() => setShowAddTaskModal(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-colors ${isLightMode ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 text-slate-300'}`}>Cancel</button>
-                <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20">Save Target</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   const renderMentor = () => (
     <div className={`flex flex-col h-[calc(100vh-6rem)] ${theme.cardSolid} rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 shadow-xl`}>
       <div className={`p-5 ${isLightMode ? 'bg-slate-50/80 border-b border-slate-200' : 'bg-black/20 border-b border-white/5'} flex items-center justify-between backdrop-blur-xl`}>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"><BrainCircuit size={24} /></div>
-          <div><h3 className="font-bold text-lg">Expert CA Mentor</h3><p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${theme.textMuted}`}>Powered by Gemini AI</p></div>
+          <div><h3 className="font-bold text-lg">Expert CA Mentor</h3><p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${theme.textMuted}`}>Powered by Audit Cubicles</p></div>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -656,6 +687,7 @@ export default function CASathiApp() {
     const todayStr = new Date().toISOString().split('T')[0];
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
     const hrsToday = studyHistory[todayStr] || hoursStudiedToday || 0;
     const hrsYesterday = studyHistory[yesterdayStr] || 0;
 
@@ -670,12 +702,14 @@ export default function CASathiApp() {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
         <div><h2 className="text-2xl font-bold tracking-tight mb-1">Performance Analytics</h2><p className={`text-sm ${theme.textMuted}`}>Track your deep focus hours and consistency.</p></div>
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Today</div><div className="text-3xl font-black text-blue-500 drop-shadow-sm">{Number(hrsToday).toFixed(1)}h</div></div>
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Yesterday</div><div className="text-3xl font-black">{Number(hrsYesterday).toFixed(1)}h</div></div>
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Last 7 Days</div><div className="text-3xl font-black text-emerald-500 drop-shadow-sm">{weekTotal.toFixed(1)}h</div></div>
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Daily Avg</div><div className="text-3xl font-black">{(weekTotal / 7).toFixed(1)}h</div></div>
         </div>
+
         <div className={`${theme.cardSolid} rounded-3xl p-8 mt-6 border border-white/10 shadow-xl`}>
           <h3 className="font-bold text-sm mb-8 flex items-center gap-2 uppercase tracking-widest"><BarChart2 size={18} className="text-blue-500"/> 7-Day Focus Trend</h3>
           <div className="flex items-end justify-between h-56 gap-3 pt-4">
