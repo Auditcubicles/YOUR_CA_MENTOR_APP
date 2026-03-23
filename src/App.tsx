@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CalendarCheck, Timer as TimerIcon, MessageSquare, TrendingUp, BookOpen,
   AlertTriangle, CheckCircle, XCircle, Play, Pause, RotateCcw, Send, Flame, Calendar,
   BrainCircuit, Target, FileText, Sun, Moon, Maximize, Minimize, Library, ExternalLink, 
-  FolderOpen, StopCircle, Clock, BarChart2, Bell, Zap, Headphones, Trophy, EyeOff, MoonStar, Briefcase
+  FolderOpen, StopCircle, Clock, BarChart2, Bell, Zap, Headphones, Trophy, EyeOff, MoonStar
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
@@ -66,9 +66,11 @@ export default function CASathiApp() {
   const [hoursStudiedToday, setHoursStudiedToday] = useLocalStorage('ca-hoursToday', 0);
   const [streak, setStreak] = useLocalStorage('ca-streak', 0);
   const [studyHistory, setStudyHistory] = useLocalStorage('ca-study-history', {}); 
-  const [subjectStats, setSubjectStats] = useLocalStorage('ca-subject-stats', {}); 
+  const [subjectMastery, setSubjectMastery] = useLocalStorage('ca-subject-mastery', {}); // Subject stats tracking
   
+  // Brain Dump and Goal States
   const [eodTargets, setEodTargets] = useLocalStorage('ca-eod-targets', ['', '', '']);
+  const [yesterdaysBrainDump, setYesterdaysBrainDump] = useLocalStorage('ca-yesterday-targets', ['', '', '']);
   const [showEODModal, setShowEODModal] = useState(false);
 
   const [tasks, setTasks] = useLocalStorage('ca-tasks', []);
@@ -103,6 +105,9 @@ export default function CASathiApp() {
     const lastLogin = localStorage.getItem('ca-lastLogin');
 
     if (lastLogin !== todayStr) {
+      // EOD Ritual Check
+      setYesterdaysBrainDump(eodTargets);
+      setEodTargets(['', '', '']);
       setHoursStudiedToday(0); 
       localStorage.setItem('ca-lastLogin', todayStr);
       
@@ -143,10 +148,13 @@ export default function CASathiApp() {
     catch (e) { console.error(e); }
   };
 
+  // --- RELIABLE AUDIO PLAYER ---
   const toggleLofi = () => {
     if (!lofiRef.current) return;
     if (isLofiPlaying) { lofiRef.current.pause(); setIsLofiPlaying(false); } 
-    else { lofiRef.current.volume = 0.4; lofiRef.current.play().then(() => setIsLofiPlaying(true)).catch(e => triggerToast("Browser blocked auto-play.", <AlertTriangle size={18}/>)); }
+    else { lofiRef.current.play().then(() => setIsLofiPlaying(true)).catch(e => {
+        triggerToast("Browser blocked sound. Please press Play again.", <AlertTriangle size={18}/>);
+    }); }
   };
 
   const triggerToast = (msg, icon = <Bell size={18} />) => {
@@ -223,16 +231,11 @@ export default function CASathiApp() {
     } else if (status === 'partial') { triggerToast('Partial session logged. Avoid distractions.'); }
   };
 
-  const addMentorMessage = (text, sender = 'mentor') => {
-    setChatHistory((prev) => [...prev, { sender, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-  };
-
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
     const userText = chatInput;
-    addMentorMessage(userText, 'user');
+    setChatHistory((prev) => [...prev, { sender: 'user', text: userText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
     setChatInput('');
     setTimeout(() => { triggerToast("Mentor is thinking...", <BrainCircuit size={18}/>); }, 500);
 
@@ -241,15 +244,15 @@ export default function CASathiApp() {
       Student says: "${userText}"`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
       );
       const data = await response.json();
       const aiReply = data.candidates[0].content.parts[0].text;
-      addMentorMessage(aiReply, 'mentor');
+      setChatHistory((prev) => [...prev, { sender: 'mentor', text: aiReply, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
       triggerToast("New message from Expert Mentor", <MessageSquare size={18}/>);
     } catch (error) {
-      addMentorMessage(`Connection error. Please try again.`, 'mentor');
+      setChatHistory((prev) => [...prev, { sender: 'mentor', text: "Connection error.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
     }
   };
 
@@ -266,9 +269,10 @@ export default function CASathiApp() {
     setTasks(tasks.map((t) => {
       if (t.id === id) {
         const newStatus = t.status === 'pending' ? 'completed' : t.status === 'completed' ? 'partial' : 'pending';
+        // Add to subject mastery
         if (newStatus === 'completed' && t.status !== 'completed') {
           const subj = t.subject.toUpperCase();
-          setSubjectStats(prev => ({ ...prev, [subj]: (prev[subj] || 0) + 1 }));
+          setSubjectMastery(prev => ({ ...prev, [subj]: (prev[subj] || 0) + 1 }));
           triggerToast(`Task completed! +1 to ${t.subject} mastery.`, <Trophy size={18} className="text-yellow-500" />);
         }
         return { ...t, status: newStatus };
@@ -279,63 +283,84 @@ export default function CASathiApp() {
 
   // --- RENDER FUNCTIONS ---
   const renderDashboard = () => {
-    const hasEodTargets = eodTargets.some(t => t.trim() !== '');
+    const hasYesterdaysDump = yesterdaysBrainDump.some(t => t.trim() !== '');
+
+    const countdownOrb = (
+      <div className={`p-8 ${theme.cardSolid} rounded-[2rem] border border-white/5 flex flex-col items-center gap-6 text-center`}>
+        <h2 className="text-red-500 font-bold tracking-[0.2em] text-[10px] uppercase drop-shadow-sm whitespace-nowrap">Mission CA Final</h2>
+        <div className="relative w-40 h-40 flex items-center justify-center rounded-full bg-slate-900 border-[20px] border-slate-800 shadow-[0_0_50px_rgba(255,255,255,0.05),_inset_0_0_30px_rgba(255,255,255,0.02)]">
+          <svg viewBox="0 0 36 36" className="absolute inset-0 w-full h-full transform -rotate-90">
+            <path className="text-red-950/30" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+            <path className="text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.7)]" strokeDasharray={`${Math.min(100, (daysLeft/120)*100)}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          <div className="flex flex-col items-baseline gap-1">
+            <span className={`text-6xl font-black tracking-tighter ${isLightMode ? 'text-slate-900' : 'text-white'}`}>{daysLeft}</span>
+            <span className={`text-[10px] ${theme.textMuted} font-medium uppercase tracking-widest`}>Days Left</span>
+          </div>
+        </div>
+        <p className={`text-sm font-medium leading-relaxed ${isLightMode ? 'text-red-700' : 'text-red-200/90'} max-w-xs`}>"{motivationalQuotes[0]}"</p>
+      </div>
+    );
+
+    const adjustGoals = (
+      <div className={`flex flex-col gap-6`}>
+        <div className={`backdrop-blur-2xl p-6 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-sm' : 'bg-white/5 border-white/10 shadow-lg'}`}>
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-3`}>Edit Target Date</div>
+          <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`${theme.input} w-full rounded-xl px-4 py-3 font-mono text-sm focus:outline-none cursor-pointer`} />
+        </div>
+        <div className={`backdrop-blur-2xl p-6 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-sm' : 'bg-white/5 border-white/10 shadow-lg'}`}>
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-3`}>Edit Daily Hrs Goal</div>
+          <input type="number" min="1" max="24" value={targetHours} onChange={(e) => setTargetHours(e.target.value)} className={`${theme.input} w-full rounded-xl px-4 py-3 font-mono text-sm focus:outline-none cursor-pointer`} />
+        </div>
+      </div>
+    );
+
+    const actionCenter = (
+      <div className={`relative p-8 ${theme.cardSolid} rounded-[2rem] border border-white/5 flex flex-col justify-between`}>
+        <div>
+          <h3 className="text-xl font-bold flex items-center gap-2.5 mb-2"><MoonStar className="text-blue-500" size={24} /> EOD Ritual</h3>
+          <p className={`text-xs font-medium ${theme.textMuted} leading-relaxed max-w-sm mb-6`}>Log your session output, set tomorrow's top 3 targets, and clear your headspace.</p>
+          <ul className="space-y-2.5">
+            {eodTargets.some(t => t.trim() !== '') ? eodTargets.filter(t => t.trim() !== '').map((t, idx) => (
+                <li key={idx} className={`text-sm font-semibold flex items-center gap-2.5 ${theme.text}`}><Zap className="text-yellow-500" size={16}/> {t}</li>
+            )) : <p className="text-sm font-medium text-slate-500">Tomorrow's targets not set yet.</p>}
+          </ul>
+        </div>
+        <button onClick={() => setShowEODModal(true)} className="w-full py-4.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-500/20 font-bold text-sm transition-all transform hover:scale-105 flex items-center justify-center gap-2 mt-8">
+            <Send size={18} /> End Day & Brain Dump
+        </button>
+      </div>
+    );
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-10 animate-in fade-in duration-500">
         
-        {/* EOD BRAIN DUMP DISPLAY */}
-        {hasEodTargets && (
-          <div className={`p-5 rounded-2xl border ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-blue-900/10 border-blue-500/20'} shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
-            <div>
-              <h3 className="font-bold text-blue-500 flex items-center gap-2 mb-2 uppercase tracking-widest text-xs"><Target size={16}/> Today's Brain Dump Targets</h3>
-              <ul className="space-y-1">
-                {eodTargets.filter(t => t.trim() !== '').map((t, idx) => (
-                  <li key={idx} className={`text-sm font-semibold flex items-center gap-2 ${theme.text}`}><div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> {t}</li>
-                ))}
-              </ul>
+        {/* NEW 3-CARD LAYOUT OVERHAUL */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {countdownOrb}
+            {adjustGoals}
+            {actionCenter}
+        </div>
+
+        {/* YESTERDAY'S BRAIN DUMP DISPLAY */}
+        {hasYesterdaysDump && (
+          <div className={`${theme.card} p-8 rounded-3xl`}>
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-3"><FileText size={22} className="text-emerald-500" /> Imported Brain Dump</h3>
+                <button onClick={() => setYesterdaysBrainDump(['','',''])} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest bg-black/10 px-3 py-1.5 rounded-lg">Clear List</button>
             </div>
-            <button onClick={() => setEodTargets(['','',''])} className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest bg-black/10 px-3 py-1.5 rounded-lg">Clear Dump</button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {yesterdaysBrainDump.filter(t => t.trim() !== '').map((t, idx) => (
+                  <div key={idx} className={`${theme.cardSolid} rounded-xl p-5 border border-emerald-500/20 shadow-lg shadow-emerald-500/5`}>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-2.5">Task {idx+1}</div>
+                      <div className={`text-sm font-semibold ${theme.text}`}>{t}</div>
+                  </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* ALIGNED EXAM COUNTDOWN HEADER */}
-        <div className={`relative overflow-hidden rounded-3xl p-8 ${isLightMode ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-red-100' : 'bg-gradient-to-br from-red-950/40 to-[#2a0808] border border-red-900/30'} shadow-xl`}>
-          <div className={`absolute -top-24 -right-24 w-72 h-72 ${isLightMode ? 'bg-red-400/20' : 'bg-red-600/20'} rounded-full blur-[80px]`}></div>
-          
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center relative z-10 gap-8">
-            <div className="flex-1 min-w-[250px]">
-              <h2 className="text-red-500 font-bold tracking-[0.2em] text-xs mb-3 uppercase drop-shadow-sm whitespace-nowrap">Mission CA Final</h2>
-              <div className="flex items-end gap-3 mb-4">
-                <span className={`text-6xl md:text-7xl font-black tracking-tighter leading-none ${isLightMode ? 'text-slate-900' : 'text-white'} drop-shadow-sm`}>{daysLeft}</span>
-                <span className={`text-xl ${theme.textMuted} font-medium pb-1.5 whitespace-nowrap`}>Days to go</span>
-              </div>
-              <p className={`mt-2 ${isLightMode ? 'text-red-700' : 'text-red-200/80'} text-sm font-medium border-l-2 border-red-500 pl-4 py-1 max-w-lg leading-relaxed`}>"{generateMentorResponse('urgency', { daysLeft })}"</p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row items-stretch gap-4 w-full lg:w-auto">
-              <div className="flex gap-4 w-full sm:w-auto">
-                <div className={`flex-1 sm:flex-none backdrop-blur-2xl p-4 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-sm' : 'bg-white/5 border-white/10 shadow-lg'}`}>
-                  <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-2`}>Target Date</div>
-                  <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={`${theme.input} w-full sm:w-auto rounded-lg px-4 py-2 font-mono text-sm focus:outline-none cursor-pointer`} />
-                </div>
-                <div className={`flex-1 sm:flex-none backdrop-blur-2xl p-4 rounded-2xl border ${isLightMode ? 'bg-white/50 border-white/40 shadow-sm' : 'bg-white/5 border-white/10 shadow-lg'}`}>
-                  <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.textMuted} mb-2`}>Daily Hrs Goal</div>
-                  <input type="number" min="1" max="24" value={targetHours} onChange={(e) => setTargetHours(e.target.value)} className={`${theme.input} w-full sm:w-24 rounded-lg px-4 py-2 font-mono text-sm focus:outline-none cursor-pointer`} />
-                </div>
-              </div>
-              {/* EOD BUTTON MATCHING HEIGHT */}
-              <button onClick={() => setShowEODModal(true)} className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white w-full sm:w-auto px-6 rounded-2xl shadow-lg shadow-blue-500/20 font-bold text-sm transition-all transform hover:scale-105 min-h-[88px]">
-                <div className="flex flex-col items-center gap-1">
-                  <MoonStar size={20} />
-                  <span>End Day & Dump</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Stat Cards */}
+        {/* Float Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className={`${theme.card} p-6 rounded-3xl flex flex-col justify-between transition-all hover:-translate-y-1 duration-300`}>
             <div className="flex items-center gap-4 mb-4">
@@ -375,44 +400,12 @@ export default function CASathiApp() {
           </div>
         </div>
 
-        {/* TODAY'S FOCUS LIST */}
-        <div className={`${theme.card} rounded-3xl p-8`}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold flex items-center gap-3"><Calendar size={22} className="text-blue-500" /> Today's Focus</h3>
-            <button onClick={() => setActiveTab('planner')} className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors bg-blue-500/10 px-3 py-1.5 rounded-lg">View Planner &rarr;</button>
-          </div>
-          <div className="space-y-3">
-            {tasks.map((task) => (
-              <div key={task.id} className={`flex items-center justify-between p-4 ${theme.cardSolid} rounded-xl border transition-all hover:border-blue-500/50 hover:shadow-sm`}>
-                <div className="flex items-center gap-4">
-                  <button onClick={() => toggleTaskStatus(task.id)} className="transition-transform hover:scale-110">
-                    {task.status === 'completed' && <CheckCircle className="text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.4)]" size={24} />}
-                    {task.status === 'partial' && <AlertTriangle className="text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.4)]" size={24} />}
-                    {task.status === 'pending' && <div className={`w-6 h-6 rounded-full border-[2px] ${isLightMode ? 'border-slate-300' : 'border-slate-600'}`}></div>}
-                  </button>
-                  <div>
-                    <div className="font-semibold text-base flex items-center gap-2">
-                      {task.subject}: <span className="font-medium opacity-80">{task.topic}</span>
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-bold tracking-widest ${task.difficulty === 'Hard' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>{task.difficulty}</span>
-                    </div>
-                    <div className={`text-xs font-medium ${theme.textMuted} mt-1`}>{task.timeOfDay} Block • {task.duration} Hours</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {task.status === 'completed' ? <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-md">Logged</span> : <button onClick={() => setActiveTab('timer')} className="text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md shadow-blue-500/20">Start Session</button>}
-                </div>
-              </div>
-            ))}
-            {tasks.length === 0 && <p className={`text-center py-6 ${theme.textMuted} font-medium text-sm`}>Your desk is clean. Add tasks in Study Planner.</p>}
-          </div>
-        </div>
-
         {/* EOD MODAL */}
         {showEODModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-[200] p-4 animate-in fade-in">
             <div className={`${theme.cardSolid} rounded-[2rem] p-10 max-w-md w-full shadow-2xl border border-white/20`}>
               <h3 className="text-3xl font-black mb-2 flex items-center gap-3"><MoonStar size={28} className="text-blue-500" /> End Day Dump</h3>
-              <p className={`text-sm font-medium mb-8 ${theme.textMuted}`}>Empty your brain. Write tomorrow's top 3 targets so you can sleep peacefully.</p>
+              <p className={`text-sm font-medium mb-8 ${theme.textMuted}`}>Log your final study session, empty your headspace. Write tomorrow's top 3 targets.</p>
               
               <div className="space-y-4 mb-8">
                 {[0, 1, 2].map((i) => (
@@ -499,12 +492,8 @@ export default function CASathiApp() {
 
         <div className="text-center w-full max-w-xl px-4">
           
-          {/* --- LO-FI SOUND BUTTON --- */}
           <div className="flex justify-center items-center mb-8">
-            <button 
-              onClick={toggleLofi}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${isLofiPlaying ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}
-            >
+            <button onClick={toggleLofi} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${isLofiPlaying ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}>
               <Headphones size={18} /> {isLofiPlaying ? 'Pause Lo-Fi Music' : 'Play Focus Lo-Fi'}
             </button>
           </div>
@@ -514,12 +503,8 @@ export default function CASathiApp() {
           </h2>
           
           <div className={`flex justify-center items-center gap-1.5 mb-8 p-1 rounded-xl border w-fit mx-auto backdrop-blur-md ${isLightMode ? 'bg-slate-100 border-slate-200' : 'bg-black/20 border-white/5'}`}>
-            <button onClick={() => setTimerDisplayType('digital')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'digital' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}>
-              <TimerIcon size={16} /> Digital
-            </button>
-            <button onClick={() => setTimerDisplayType('analog')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'analog' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}>
-              <Clock size={16} /> Analog
-            </button>
+            <button onClick={() => setTimerDisplayType('digital')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'digital' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}><TimerIcon size={16} /> Digital</button>
+            <button onClick={() => setTimerDisplayType('analog')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'analog' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}><Clock size={16} /> Analog</button>
           </div>
 
           {!isActive && !isFullScreen && (
@@ -536,9 +521,7 @@ export default function CASathiApp() {
           )}
 
           {timerDisplayType === 'digital' ? (
-            <div className={`text-[6rem] md:text-[9rem] font-bold font-mono tracking-tighter leading-none mb-12 drop-shadow-xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]') : theme.textMuted}`}>
-              {formatTime(timeLeft)}
-            </div>
+            <div className={`text-[6rem] md:text-[9rem] font-bold font-mono tracking-tighter leading-none mb-12 drop-shadow-xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]') : theme.textMuted}`}>{formatTime(timeLeft)}</div>
           ) : (
             <div className="relative flex flex-col items-center justify-center mb-10 w-full">
               <svg width="240" height="240" viewBox="0 0 100 100" className="drop-shadow-2xl mx-auto">
@@ -553,17 +536,10 @@ export default function CASathiApp() {
           )}
           
           <div className="flex justify-center items-center gap-6 mb-10">
-            <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? (Number(workDuration)||50) * 60 : (Number(breakDuration)||10) * 60); }} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer">
-              <RotateCcw size={20} />
+            <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? (Number(workDuration)||50) * 60 : (Number(breakDuration)||10) * 60); }} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer"><RotateCcw size={20} /></button>
+            <button onClick={() => setIsActive(!isActive)} className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.4)]'}`}>{isActive ? <Pause size={32} /> : <Play size={32} className="ml-2" />}
             </button>
-
-            <button onClick={() => setIsActive(!isActive)} className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.4)]'}`}>
-              {isActive ? <Pause size={32} /> : <Play size={32} className="ml-2" />}
-            </button>
-
-            <button onClick={handleStopSession} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-50' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time">
-              <StopCircle size={24} />
-            </button>
+            <button onClick={handleStopSession} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-50' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time"><StopCircle size={24} /></button>
           </div>
 
           {!isFullScreen && (
@@ -656,7 +632,7 @@ export default function CASathiApp() {
       <div className={`p-5 ${isLightMode ? 'bg-slate-50/80 border-b border-slate-200' : 'bg-black/20 border-b border-white/5'} flex items-center justify-between backdrop-blur-xl`}>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"><BrainCircuit size={24} /></div>
-          <div><h3 className="font-bold text-lg">Expert CA Mentor</h3><p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${theme.textMuted}`}>Powered by Audit Cubicles</p></div>
+          <div><h3 className="font-bold text-lg">Expert CA Mentor</h3><p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${theme.textMuted}`}>Powered by Gemini AI</p></div>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -680,7 +656,6 @@ export default function CASathiApp() {
     const todayStr = new Date().toISOString().split('T')[0];
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
-    
     const hrsToday = studyHistory[todayStr] || hoursStudiedToday || 0;
     const hrsYesterday = studyHistory[yesterdayStr] || 0;
 
@@ -695,14 +670,12 @@ export default function CASathiApp() {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
         <div><h2 className="text-2xl font-bold tracking-tight mb-1">Performance Analytics</h2><p className={`text-sm ${theme.textMuted}`}>Track your deep focus hours and consistency.</p></div>
-        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Today</div><div className="text-3xl font-black text-blue-500 drop-shadow-sm">{Number(hrsToday).toFixed(1)}h</div></div>
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Yesterday</div><div className="text-3xl font-black">{Number(hrsYesterday).toFixed(1)}h</div></div>
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Last 7 Days</div><div className="text-3xl font-black text-emerald-500 drop-shadow-sm">{weekTotal.toFixed(1)}h</div></div>
           <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Daily Avg</div><div className="text-3xl font-black">{(weekTotal / 7).toFixed(1)}h</div></div>
         </div>
-
         <div className={`${theme.cardSolid} rounded-3xl p-8 mt-6 border border-white/10 shadow-xl`}>
           <h3 className="font-bold text-sm mb-8 flex items-center gap-2 uppercase tracking-widest"><BarChart2 size={18} className="text-blue-500"/> 7-Day Focus Trend</h3>
           <div className="flex items-end justify-between h-56 gap-3 pt-4">
@@ -722,10 +695,9 @@ export default function CASathiApp() {
     );
   };
 
-  // --- SMART TROPHY ROOM ENGINE ---
   const renderTrophyRoom = () => {
     // Helper to check mastery keywords
-    const checkMastery = (keywords) => Object.keys(subjectStats).some(k => keywords.some(kw => k.includes(kw)) && subjectStats[k] >= 5);
+    const checkMastery = (keywords) => Object.keys(subjectMastery).some(k => keywords.some(kw => k.includes(kw)) && subjectMastery[k] >= 5);
     
     const isFRPro = checkMastery(['FR', 'FINANCIAL REPORTING']);
     const isAFMPro = checkMastery(['AFM', 'ADVANCED FINANCIAL']);
@@ -743,7 +715,7 @@ export default function CASathiApp() {
       { id: 'audit_master', name: 'Audit Master', desc: 'Complete 5 Audit tasks.', icon: <BookOpen size={32}/>, unlocked: isAuditMaster, color: 'text-purple-500', glow: 'shadow-purple-500/40' },
       { id: 'dt_expert', name: 'DT Expert', desc: 'Complete 5 Direct Tax tasks.', icon: <FileText size={32}/>, unlocked: isDTExpert, color: 'text-rose-500', glow: 'shadow-rose-500/40' },
       { id: 'idt_expert', name: 'IDT Expert', desc: 'Complete 5 Indirect Tax tasks.', icon: <Library size={32}/>, unlocked: isIDTExpert, color: 'text-indigo-500', glow: 'shadow-indigo-500/40' },
-      { id: 'ibs_master', name: 'IBS Master', desc: 'Complete 5 IBS tasks.', icon: <Briefcase size={32}/>, unlocked: isIBSMaster, color: 'text-teal-500', glow: 'shadow-teal-500/40' },
+      { id: 'ibs_master', name: 'IBS Master', desc: 'Complete 5 IBS tasks.', icon: <BookOpen size={32}/>, unlocked: isIBSMaster, color: 'text-teal-500', glow: 'shadow-teal-500/40' },
     ];
 
     return (
@@ -879,6 +851,7 @@ export default function CASathiApp() {
           ))}
         </nav>
 
+        {/* Theme Toggle Button */}
         <div className={`p-5 border-t ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
           <button 
             onClick={() => setIsLightMode(!isLightMode)}
@@ -905,7 +878,7 @@ export default function CASathiApp() {
         </div>
       </main>
 
-      {/* SMART TOAST NOTIFICATION */}
+      {/* SMART TOAST NOTIFICATION (15 SECONDS LOCKED) */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-500 max-w-sm">
           <div className={`${theme.cardSolid} border shadow-2xl rounded-2xl p-5 flex items-start gap-4`}>
