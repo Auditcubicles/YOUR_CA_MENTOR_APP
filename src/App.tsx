@@ -117,7 +117,7 @@ export default function CASathiApp() {
     const quoteInterval = setInterval(() => {
       const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
       triggerToast(randomQuote, <Zap size={18} />);
-    }, 3600000); // 3600000 ms = 1 Hour
+    }, 5000); // 5000 ms = 1 Hour
 
     return () => clearInterval(quoteInterval);
   }, []);
