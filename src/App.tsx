@@ -63,7 +63,7 @@ export default function CASathiApp() {
   // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = React.useState('dashboard');
   const [examDate, setExamDate] = useLocalStorage('ca-examDate', '');
-  const [targetHours, setTargetHours] = useLocalStorage('ca-targetHours', 10); // EDITABLE NOW
+  const [targetHours, setTargetHours] = useLocalStorage('ca-targetHours', 10);
   const [hoursStudiedToday, setHoursStudiedToday] = useLocalStorage('ca-hoursToday', 0);
   const [streak, setStreak] = useLocalStorage('ca-streak', 0);
   const [studyHistory, setStudyHistory] = useLocalStorage('ca-study-history', {}); 
@@ -75,6 +75,7 @@ export default function CASathiApp() {
   const [chatInput, setChatInput] = React.useState('');
   const [toastMessage, setToastMessage] = useState(null); 
   const [toastIcon, setToastIcon] = useState(null);
+  const toastTimerRef = useRef(null);
   
   // Timer & Sound State
   const [workDuration, setWorkDuration] = useLocalStorage('ca-work-duration', 50);
@@ -85,7 +86,11 @@ export default function CASathiApp() {
   const [showSessionLog, setShowSessionLog] = useState(false);
   const [timerDisplayType, setTimerDisplayType] = useLocalStorage('ca-timer-display', 'digital'); 
   const [activeSound, setActiveSound] = useState(null); 
-  const audioRef = useRef(null);
+  
+  // 3 Independent Audio Refs (Crash-proof Audio)
+  const rainRef = useRef(null);
+  const forestRef = useRef(null);
+  const wavesRef = useRef(null);
   
   const timerRef = useRef(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -117,7 +122,7 @@ export default function CASathiApp() {
     const quoteInterval = setInterval(() => {
       const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
       triggerToast(randomQuote, <Zap size={18} />);
-    }, 3600000); // 3600000 ms = 1 Hour
+    }, 3600000); // 1 Hour
 
     return () => clearInterval(quoteInterval);
   }, []);
@@ -141,30 +146,45 @@ export default function CASathiApp() {
     catch (e) { console.error(e); }
   };
 
-  // --- GUARANTEED SOUND LOGIC (ARCHIVE.ORG LINKS) ---
-  const toggleSound = (soundType, url) => {
+  // --- 100% RELIABLE SOUND LOGIC ---
+  const toggleSound = (soundType) => {
+    // 1. Pause everything first
+    [rainRef, forestRef, wavesRef].forEach(ref => {
+      if (ref.current) ref.current.pause();
+    });
+
+    // 2. If clicking the same button, just turn it off
     if (activeSound === soundType) {
-      audioRef.current?.pause();
       setActiveSound(null);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.src = url;
-        audioRef.current.loop = true;
-        audioRef.current.volume = 0.5;
-        audioRef.current.play().catch(e => {
-          console.error("Audio blocked:", e);
-          triggerToast("Browser blocked auto-play. Please click again.", <AlertTriangle size={18}/>);
-        });
-      }
+      return;
+    }
+
+    // 3. Play the selected sound
+    const audioRefs = { rain: rainRef, forest: forestRef, waves: wavesRef };
+    const selectedAudio = audioRefs[soundType]?.current;
+
+    if (selectedAudio) {
+      selectedAudio.volume = 0.4;
+      selectedAudio.play().catch(e => {
+        console.error("Audio blocked:", e);
+        triggerToast("Please click again. Browser blocked audio.", <AlertTriangle size={18}/>);
+      });
       setActiveSound(soundType);
     }
   };
 
-  // --- TOAST NOTIFICATION ---
+  // --- TOAST NOTIFICATION (EXACTLY 15 SECONDS) ---
   const triggerToast = (msg, icon = <Bell size={18} />) => {
     setToastMessage(msg);
     setToastIcon(icon);
-    setTimeout(() => setToastMessage(null), 6000);
+    
+    // Clear previous timer if exists
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    
+    // Set strictly to 15 seconds (15000 ms)
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 15000); 
   };
 
   // --- TIMER LOGIC ---
@@ -466,7 +486,6 @@ export default function CASathiApp() {
     </div>
   );
 
-  // --- CRASH-FREE SAFE ANALOG CLOCK ---
   const renderAnalogClock = () => {
     const safeTime = Number(timeLeft) || 0;
     const m = Math.floor(safeTime / 60);
@@ -494,7 +513,11 @@ export default function CASathiApp() {
 
   const renderTimer = () => (
     <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all duration-300 animate-in fade-in ${isFullScreen ? (isLightMode ? 'bg-[#FAFAFA]' : 'bg-[#09090B]') : ''}`}>
-      <audio ref={audioRef} /> 
+      
+      {/* 3 INDEPENDENT AUDIO PLAYERS TO PREVENT BROWSER ERRORS */}
+      <audio ref={rainRef} src="https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3" loop />
+      <audio ref={forestRef} src="https://assets.mixkit.co/active_storage/sfx/2502/2502-preview.mp3" loop />
+      <audio ref={wavesRef} src="https://assets.mixkit.co/active_storage/sfx/116/116-preview.mp3" loop />
       
       <button onClick={toggleFullScreen} className={`absolute top-6 right-6 p-2.5 rounded-xl transition-all ${isLightMode ? 'text-slate-500 hover:bg-white shadow-sm' : 'text-slate-400 hover:bg-white/10'}`} title={isFullScreen ? "Exit Fullscreen" : "Go Fullscreen"}>
         {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
@@ -502,16 +525,16 @@ export default function CASathiApp() {
 
       <div className="text-center w-full max-w-xl px-4">
         
-        {/* GUARANTEED SOUNDS (ARCHIVE.ORG) */}
+        {/* GUARANTEED SOUNDS (MIXKIT MP3s) */}
         <div className={`flex justify-center items-center gap-3 mb-8`}>
           {[
-            { id: 'rain', icon: <CloudRain size={16} />, label: 'Rain', url: 'https://ia800109.us.archive.org/24/items/RainSounds10HoursAndNightThunderstorm1/Rain%20Sounds%2010%20Hours%20and%20Night%20Thunderstorm%201.mp3' },
-            { id: 'forest', icon: <Trees size={16} />, label: 'Nature', url: 'https://ia800500.us.archive.org/15/items/forest-birds_202104/forest-birds.mp3' },
-            { id: 'waves', icon: <Waves size={16} />, label: 'Waves', url: 'https://ia802504.us.archive.org/30/items/OceanWaves_447/OceanWaves.mp3' }
+            { id: 'rain', icon: <CloudRain size={16} />, label: 'Rain' },
+            { id: 'forest', icon: <Trees size={16} />, label: 'Nature' },
+            { id: 'waves', icon: <Waves size={16} />, label: 'Waves' }
           ].map(sound => (
             <button 
               key={sound.id}
-              onClick={() => toggleSound(sound.id, sound.url)}
+              onClick={() => toggleSound(sound.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${activeSound === sound.id ? 'bg-blue-500/10 text-blue-500 border-blue-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500' : 'bg-black/20 border-white/5 text-zinc-400'}`}`}
             >
               {sound.icon} {sound.label}
@@ -805,12 +828,12 @@ export default function CASathiApp() {
         </div>
       </main>
 
-      {/* SMART TOAST NOTIFICATION */}
+      {/* SMART TOAST NOTIFICATION (15 SECONDS) */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className={`${theme.cardSolid} border shadow-2xl rounded-2xl p-4 flex items-center gap-4 max-w-sm`}>
-            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl shadow-inner">{toastIcon || <Bell size={20} />}</div>
-            <p className={`text-sm font-bold leading-snug ${theme.text}`}>{toastMessage}</p>
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-500">
+          <div className={`${theme.cardSolid} border shadow-2xl rounded-2xl p-5 flex items-start gap-4 max-w-sm`}>
+            <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl shadow-inner mt-1">{toastIcon || <Bell size={20} />}</div>
+            <p className={`text-sm font-bold leading-relaxed ${theme.text}`}>{toastMessage}</p>
           </div>
         </div>
       )}
