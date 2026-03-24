@@ -96,11 +96,16 @@ export default function CASathiApp() {
   const lofiRef = useRef(null);
   const timerRef = useRef(null);
   const canvasRef = useRef(null);
-  const videoRef = useRef(null); // FIXED: The ref name matches perfectly now
+  const videoRef = useRef(null);
   
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = React.useState(false);
   const [newTask, setNewTask] = React.useState({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
+
+  // --- ADD MENTOR MESSAGE HELPER ---
+  const addMentorMessage = (text) => {
+    setChatHistory((prev) => [...prev, { sender: 'mentor', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+  };
 
   // --- ENGINE: STREAK & MIDNIGHT RESET ---
   useEffect(() => {
@@ -129,7 +134,7 @@ export default function CASathiApp() {
     const quoteInterval = setInterval(() => {
       const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
       triggerToast(randomQuote, <Zap size={18} className="text-yellow-500" />);
-    }, 1200000); 
+    }, 3600000); 
     return () => clearInterval(quoteInterval);
   }, []);
 
@@ -244,10 +249,26 @@ export default function CASathiApp() {
     else { setTimerMode('pomodoro'); setTimeLeft((Number(workDuration) || 50) * 60); triggerToast('Break over. Back to your books.'); }
   };
 
-  // --- ADD MENTOR MESSAGE HELPER ---
-  const addMentorMessage = (text) => {
-    setChatHistory((prev) => [...prev, { sender: 'mentor', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+  const handleStopSession = () => {
+    setIsActive(false);
+    if (isZenMode) setIsZenMode(false);
+    const safeWorkDur = Number(workDuration) || 50;
+    const totalPlanned = timerMode === 'pomodoro' ? safeWorkDur * 60 : (Number(breakDuration) || 10) * 60;
+    const secondsStudied = totalPlanned - timeLeft;
+    
+    if (timerMode === 'pomodoro' && secondsStudied > 0) {
+      const added = secondsStudied / 3600; 
+      setHoursStudiedToday(prev => prev + added); saveToHistory(added);
+      if ((hoursStudiedToday + added) >= safeTarget && hoursStudiedToday < safeTarget) {
+        setStreak(prev => prev + 1); localStorage.setItem('ca-lastTargetHit', new Date().toISOString().split('T')[0]);
+        triggerToast("Target Hit! Streak Maintained 🔥", <Trophy size={18}/>);
+      }
+      triggerToast(`Saved ${(secondsStudied / 60).toFixed(1)} mins.`);
+      addMentorMessage(`Session stopped early. Added ${(secondsStudied / 60).toFixed(1)} mins to your daily progress.`); // MENTOR AUTO-REPLY
+    }
+    setTimerMode('pomodoro'); setTimeLeft(safeWorkDur * 60); setShowSessionLog(false); safeExitFullscreen(); 
   };
+
   const logSessionResult = (status) => {
     setShowSessionLog(false);
     const safeWorkDur = Number(workDuration) || 50;
@@ -263,13 +284,13 @@ export default function CASathiApp() {
 
     if (status === 'completed') {
       triggerToast("Session logged perfectly. Good focus.");
-      addMentorMessage("Good focus. Session logged perfectly. Take a short break."); // --- AI MENTOR AUTO-REPLY ---
+      addMentorMessage("Good focus. Session logged perfectly. Take a short break."); // MENTOR AUTO-REPLY
       setTimerMode('shortBreak'); setTimeLeft((Number(breakDuration) || 10) * 60); setIsActive(true);
     } else if (status === 'partial') { 
       triggerToast('Partial session logged. Avoid distractions.'); 
-      addMentorMessage("Partial session logged. Try to avoid distractions next time."); // --- AI MENTOR AUTO-REPLY ---
+      addMentorMessage("Partial session logged. Try to avoid distractions next time."); // MENTOR AUTO-REPLY
     } else if (status === 'failed') {
-      addMentorMessage("Session wasted. No output logged. Analyze what distracted you and bounce back."); // --- AI MENTOR AUTO-REPLY ---
+      addMentorMessage("Session wasted. No output logged. Analyze what distracted you and bounce back."); // MENTOR AUTO-REPLY
     }
   };
 
@@ -995,7 +1016,6 @@ export default function CASathiApp() {
         </div>
       </main>
 
-      {/* SMART TOAST NOTIFICATION */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-[999] animate-in slide-in-from-bottom-5 fade-in duration-500 max-w-sm">
           <div className={`${theme.cardSolid} border shadow-2xl rounded-2xl p-5 flex items-start gap-4`}>
