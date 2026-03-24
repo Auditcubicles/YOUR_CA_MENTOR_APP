@@ -3,7 +3,7 @@ import {
   LayoutDashboard, CalendarCheck, Timer as TimerIcon, MessageSquare, TrendingUp, BookOpen,
   AlertTriangle, CheckCircle, XCircle, Play, Pause, RotateCcw, Send, Flame, Calendar,
   BrainCircuit, Target, FileText, Sun, Moon, Maximize, Minimize, Library, ExternalLink, 
-  FolderOpen, StopCircle, Clock, BarChart2, Bell, Zap, Headphones, Trophy, EyeOff, MoonStar
+  FolderOpen, StopCircle, Clock, BarChart2, Bell, Zap, Headphones, Trophy, EyeOff, MoonStar, Megaphone, PictureInPicture
 } from 'lucide-react';
 
 // --- BROWSER MEMORY HOOK ---
@@ -81,7 +81,7 @@ export default function CASathiApp() {
   const [toastIcon, setToastIcon] = useState(null);
   const toastTimerRef = useRef(null);
   
-  // Timer & Sound State
+  // Timer, Sound & PiP State
   const [workDuration, setWorkDuration] = useLocalStorage('ca-work-duration', 50);
   const [breakDuration, setBreakDuration] = useLocalStorage('ca-break-duration', 10);
   const [timerMode, setTimerMode] = useState('pomodoro');
@@ -94,6 +94,10 @@ export default function CASathiApp() {
   
   const lofiRef = useRef(null);
   const timerRef = useRef(null);
+  const canvasRef = useRef(null); // For PiP
+  const videoRef = useRef(null);  // For PiP
+  const [isPipActive, setIsPipActive] = useState(false);
+
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = React.useState(false);
   const [newTask, setNewTask] = React.useState({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
@@ -157,6 +161,60 @@ export default function CASathiApp() {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToastMessage(null), 15000); 
   };
+
+  // --- PICTURE IN PICTURE (PiP) ENGINE ---
+  useEffect(() => {
+    // Continuously draw timer on hidden canvas for PiP
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      const width = canvasRef.current.width;
+      const height = canvasRef.current.height;
+      
+      // Background
+      ctx.fillStyle = isLightMode ? '#f8fafc' : '#0f172a';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Accents based on mode
+      ctx.fillStyle = timerMode === 'pomodoro' ? '#3b82f6' : '#10b981';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(timerMode === 'pomodoro' ? 'DEEP FOCUS' : 'BREAK TIME', width / 2, 50);
+      
+      // Timer Text
+      ctx.fillStyle = isLightMode ? '#0f172a' : '#ffffff';
+      ctx.font = 'bold 100px monospace';
+      ctx.fillText(formatTime(timeLeft), width / 2, height / 2 + 30);
+    }
+  }, [timeLeft, timerMode, isLightMode]);
+
+  const togglePiP = async () => {
+    try {
+      const video = videoRef.current;
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPipActive(false);
+      } else {
+        // Capture canvas stream and play in hidden video element
+        const stream = canvasRef.current.captureStream(30); // 30 FPS
+        video.srcObject = stream;
+        await video.play();
+        await video.requestPictureInPicture();
+        setIsPipActive(true);
+      }
+    } catch (error) {
+      console.error(error);
+      triggerToast("PiP not supported or blocked by browser.", <AlertTriangle size={18}/>);
+    }
+  };
+
+  // Listen for native PiP close
+  useEffect(() => {
+    const video = videoRef.current;
+    const handleLeavePip = () => setIsPipActive(false);
+    if (video) video.addEventListener('leavepictureinpicture', handleLeavePip);
+    return () => { if (video) video.removeEventListener('leavepictureinpicture', handleLeavePip); };
+  }, []);
+
 
   // --- TIMER LOGIC ---
   useEffect(() => {
@@ -259,7 +317,7 @@ export default function CASathiApp() {
     setNewTask({ subject: '', topic: '', duration: 2, difficulty: 'Medium', timeOfDay: 'Morning' });
   };
 
-  // GAMIFICATION LOGIC (Added Subject Checks)
+  // GAMIFICATION LOGIC
   const toggleTaskStatus = (id) => {
     setTasks(tasks.map((t) => {
       if (t.id === id) {
@@ -331,14 +389,12 @@ export default function CASathiApp() {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         
-        {/* NEW DASHBOARD LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {countdownOrb}
             {adjustGoals}
             {actionCenter}
         </div>
 
-        {/* YESTERDAY'S DUMP */}
         {hasYesterdaysDump && (
           <div className={`${theme.card} p-8 rounded-3xl shadow-lg`}>
             <div className="flex justify-between items-center mb-6">
@@ -356,7 +412,6 @@ export default function CASathiApp() {
           </div>
         )}
 
-        {/* Float Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className={`${theme.card} p-6 rounded-3xl flex flex-col justify-between transition-all hover:-translate-y-1 duration-300`}>
             <div className="flex items-center gap-4 mb-4">
@@ -401,7 +456,7 @@ export default function CASathiApp() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-[200] p-4 animate-in fade-in">
             <div className={`${theme.cardSolid} rounded-[2rem] p-10 max-w-md w-full shadow-2xl border border-white/20`}>
               <h3 className="text-3xl font-black mb-2 flex items-center gap-3"><MoonStar size={28} className="text-blue-500" /> End Day Dump</h3>
-              <p className={`text-sm font-medium mb-8 ${theme.textMuted}`}>Log your final study session, empty your headspace. Write tomorrow's top 3 targets.</p>
+              <p className={`text-sm font-medium mb-8 ${theme.textMuted}`}>Empty your brain. Write tomorrow's top 3 targets so you can sleep peacefully.</p>
               
               <div className="space-y-4 mb-8">
                 {[0, 1, 2].map((i) => (
@@ -410,8 +465,141 @@ export default function CASathiApp() {
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setShowEODModal(false)} className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-colors ${isLightMode ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>Cancel</button>
-                <button onClick={() => { setShowEODModal(false); triggerToast("Targets saved! Have a good sleep.", <MoonStar size={18}/>); }} className="flex-1 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 transition-all">Save & Sleep</button>
+                <button onClick={() => setShowEODModal(false)} className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-colors ${isLightMode ? 'bg-slate-100 text-slate-700' : 'bg-white/5 text-slate-300'}`}>Cancel</button>
+                <button onClick={() => { setShowEODModal(false); triggerToast("Targets saved! Have a good sleep.", <MoonStar size={18}/>); }} className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/30 transition-all">Save & Sleep</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAnalytics = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    const hrsToday = studyHistory[todayStr] || hoursStudiedToday || 0;
+    const hrsYesterday = studyHistory[yesterdayStr] || 0;
+
+    const last7Days = []; let weekTotal = 0;
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().split('T')[0];
+      const hrs = studyHistory[ds] || (i === 0 ? hoursStudiedToday : 0);
+      weekTotal += Number(hrs); last7Days.push({ day: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: Number(hrs).toFixed(1), raw: Number(hrs) });
+    }
+    
+    // FIX: Dynamic scaling for bar chart so it never gets stuck
+    const maxChartHrs = Math.max(...last7Days.map(d => d.raw), safeTarget, 1); 
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div><h2 className="text-2xl font-bold tracking-tight mb-1">Performance Analytics</h2><p className={`text-sm ${theme.textMuted}`}>Track your deep focus hours and consistency.</p></div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Today</div><div className="text-3xl font-black text-blue-500 drop-shadow-sm">{Number(hrsToday).toFixed(1)}h</div></div>
+          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Yesterday</div><div className="text-3xl font-black">{Number(hrsYesterday).toFixed(1)}h</div></div>
+          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Last 7 Days</div><div className="text-3xl font-black text-emerald-500 drop-shadow-sm">{weekTotal.toFixed(1)}h</div></div>
+          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Daily Avg</div><div className="text-3xl font-black">{(weekTotal / 7).toFixed(1)}h</div></div>
+        </div>
+
+        <div className={`${theme.cardSolid} rounded-3xl p-8 mt-6 border border-white/10 shadow-xl`}>
+          <h3 className="font-bold text-sm mb-8 flex items-center gap-2 uppercase tracking-widest"><BarChart2 size={18} className="text-blue-500"/> 7-Day Focus Trend</h3>
+          <div className="flex items-end justify-between h-56 gap-3 pt-4">
+            {last7Days.map((data, idx) => {
+              const heightPercent = (data.raw / maxChartHrs) * 100;
+              return (
+                <div key={idx} className="flex flex-col items-center flex-1 group">
+                  <div className={`text-xs font-mono font-bold mb-2 opacity-0 group-hover:opacity-100 transition-opacity ${theme.textMuted}`}>{data.hours}</div>
+                  <div className={`w-full max-w-[48px] rounded-t-xl transition-all duration-700 ${idx === 6 ? 'bg-gradient-to-t from-blue-600 to-cyan-400 shadow-[0_0_15px_rgba(56,189,248,0.5)]' : isLightMode ? 'bg-slate-200 hover:bg-slate-300' : 'bg-white/10 hover:bg-white/20'}`} style={{ height: `${heightPercent}%`, minHeight: '5px' }}></div>
+                  <div className={`text-[10px] font-bold uppercase tracking-wider mt-4 ${idx === 6 ? 'text-blue-500' : theme.textMuted}`}>{data.day}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTimer = () => {
+    return (
+      <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all duration-300 animate-in fade-in ${isFullScreen ? (isLightMode ? 'bg-[#FAFAFA]' : 'bg-[#09090B]') : ''}`}>
+        
+        {/* HIDDEN CANVAS & VIDEO FOR PiP MODE */}
+        <canvas ref={canvasRef} width="600" height="300" className="fixed -top-[2000px] left-0 pointer-events-none" />
+        <video ref={videoPipRef} autoPlay muted playsInline className="hidden" />
+
+        <audio ref={lofiRef} src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" loop /> 
+        
+        <div className="absolute top-6 right-6 flex gap-3">
+          <button onClick={togglePiP} className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md flex items-center gap-2 ${isPipActive ? 'bg-blue-600 text-white' : isLightMode ? 'bg-white text-slate-700 hover:bg-slate-100' : 'bg-white/10 text-white hover:bg-white/20'}`} title="Picture in Picture">
+            <PictureInPicture size={16} /> PiP
+          </button>
+          <button onClick={() => setIsZenMode(true)} className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md flex items-center gap-2 ${isLightMode ? 'bg-black text-white hover:bg-slate-800' : 'bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.2)]'}`}>
+            <EyeOff size={16} /> Zen
+          </button>
+          <button onClick={toggleFullScreen} className={`p-2.5 rounded-xl transition-all ${isLightMode ? 'text-slate-500 hover:bg-white shadow-sm' : 'text-slate-400 hover:bg-white/10'}`} title="Fullscreen">
+            {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
+          </button>
+        </div>
+
+        <div className="text-center w-full max-w-xl px-4">
+          <div className="flex justify-center items-center mb-8">
+            <button onClick={toggleLofi} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${isLofiPlaying ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}>
+              <Headphones size={18} /> {isLofiPlaying ? 'Pause Lo-Fi Music' : 'Play Focus Lo-Fi'}
+            </button>
+          </div>
+
+          <h2 className={`text-xs font-bold mb-6 uppercase tracking-[0.3em] ${theme.textMuted}`}>
+            {timerMode === 'pomodoro' ? 'Deep Focus Session' : 'Strict Break'}
+          </h2>
+          
+          {!isActive && !isFullScreen && (
+            <div className="flex justify-center gap-8 mb-8">
+              <div className="flex flex-col items-center">
+                <label className={`text-[10px] mb-2 font-bold uppercase tracking-widest ${theme.textMuted}`}>Work (Min)</label>
+                <input type="number" value={workDuration} onChange={(e) => { const v = e.target.value; setWorkDuration(v); if(timerMode==='pomodoro') setTimeLeft((Number(v)||0)*60);}} className={`w-20 text-center rounded-xl p-2.5 font-mono text-lg font-bold shadow-inner ${theme.input}`} />
+              </div>
+              <div className="flex flex-col items-center">
+                <label className={`text-[10px] mb-2 font-bold uppercase tracking-widest ${theme.textMuted}`}>Break (Min)</label>
+                <input type="number" value={breakDuration} onChange={(e) => { const v = e.target.value; setBreakDuration(v); if(timerMode==='shortBreak') setTimeLeft((Number(v)||0)*60);}} className={`w-20 text-center rounded-xl p-2.5 font-mono text-lg font-bold shadow-inner ${theme.input}`} />
+              </div>
+            </div>
+          )}
+
+          <div className={`text-[6rem] md:text-[9rem] font-bold font-mono tracking-tighter leading-none mb-12 drop-shadow-xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]') : theme.textMuted}`}>
+            {formatTime(timeLeft)}
+          </div>
+          
+          <div className="flex justify-center items-center gap-6 mb-10">
+            <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? (Number(workDuration)||50) * 60 : (Number(breakDuration)||10) * 60); }} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer"><RotateCcw size={20} /></button>
+            <button onClick={() => setIsActive(!isActive)} className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.4)]'}`}>{isActive ? <Pause size={32} /> : <Play size={32} className="ml-2" />}</button>
+            <button onClick={handleStopSession} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-50' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time"><StopCircle size={24} /></button>
+          </div>
+
+          {!isFullScreen && (
+            <div className={`${theme.cardSolid} rounded-2xl p-5 text-left shadow-lg max-w-lg mx-auto`}>
+              <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 ${theme.textMuted}`}>Currently Executing:</div>
+              <select className={`w-full rounded-xl p-3 text-sm font-semibold outline-none cursor-pointer ${theme.input}`}>
+                {tasks.filter((t) => t.status !== 'completed').map((t) => <option key={t.id}>{t.subject} - {t.topic}</option>)}
+                {tasks.filter((t) => t.status !== 'completed').length === 0 && <option>No active tasks assigned</option>}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {showSessionLog && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[200] p-4 animate-in fade-in duration-300">
+            <div className={`${theme.cardSolid} rounded-3xl p-10 max-w-sm w-full text-center shadow-2xl border border-white/10`}>
+              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-5 text-blue-500"><TimerIcon size={32} /></div>
+              <h3 className="text-2xl font-bold mb-3">Session Complete</h3>
+              <p className={`text-xs font-medium mb-8 ${theme.textMuted}`}>Be honest with yourself. How was your focus?</p>
+              <div className="space-y-3">
+                <button onClick={() => logSessionResult('completed')} className="w-full py-4 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><CheckCircle size={18} /> 100% Focused</button>
+                <button onClick={() => logSessionResult('partial')} className="w-full py-4 bg-amber-500/10 text-amber-500 border border-amber-500/30 hover:bg-amber-500/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><AlertTriangle size={18} /> Partially Distracted</button>
+                <button onClick={() => logSessionResult('failed')} className="w-full py-4 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><XCircle size={18} /> Wasted (0 Output)</button>
               </div>
             </div>
           </div>
@@ -425,7 +613,7 @@ export default function CASathiApp() {
       <div className="flex justify-between items-center mb-2">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Study Planner</h2>
-          <p className={`text-sm font-medium ${theme.textMuted} mt-1`}>Organize your day, track progress, and crush your targets.</p>
+          <p className={`text-sm font-medium ${theme.textMuted} mt-1`}>Organize your day. Tackle hard subjects early.</p>
         </div>
         <button onClick={() => setShowAddTaskModal(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all transform hover:scale-105 text-sm">+ Add Target</button>
       </div>
@@ -494,243 +682,7 @@ export default function CASathiApp() {
     </div>
   );
 
-  const renderTimer = () => {
-    // --- ULTRA ZEN MODE ---
-    if (isZenMode) {
-      return (
-        <div className="fixed inset-0 z-[200] bg-black text-white flex flex-col items-center justify-center p-8 animate-in fade-in duration-700">
-          <audio ref={lofiRef} src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" loop />
-          
-          <button onClick={() => setIsZenMode(false)} className="absolute top-8 right-8 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors backdrop-blur-md">
-            <EyeOff size={16} /> Exit Zen
-          </button>
-
-          <div className="absolute top-8 left-8">
-            <button onClick={toggleLofi} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${isLofiPlaying ? 'text-indigo-400 bg-indigo-500/10 border border-indigo-500/30' : 'text-white/50 border border-white/10'}`}>
-              <Headphones size={16} /> {isLofiPlaying ? 'Lo-Fi On' : 'Lo-Fi Off'}
-            </button>
-          </div>
-
-          <h2 className="text-xs font-black mb-12 uppercase tracking-[0.5em] text-white/50">
-            {timerMode === 'pomodoro' ? 'Deep Focus' : 'Break'}
-          </h2>
-
-          <div className="text-[10rem] md:text-[18rem] font-black font-mono tracking-tighter leading-none mb-20 drop-shadow-[0_0_80px_rgba(255,255,255,0.15)] text-white">
-            {formatTime(timeLeft)}
-          </div>
-
-          <div className="flex justify-center items-center gap-8 mb-20">
-            <button onClick={() => setIsActive(!isActive)} className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500 ${isActive ? 'bg-white/10 border border-white/20 text-white' : 'bg-white text-black shadow-[0_0_50px_rgba(255,255,255,0.4)] hover:scale-105'}`}>
-              {isActive ? <Pause size={48} /> : <Play size={48} className="ml-2" />}
-            </button>
-            <button onClick={handleStopSession} className="w-20 h-20 rounded-full flex items-center justify-center bg-red-500/20 text-red-500 border border-red-500/30 hover:bg-red-500/40 transition-all">
-              <StopCircle size={32} />
-            </button>
-          </div>
-
-          <p className="absolute bottom-12 text-white/40 font-bold uppercase tracking-widest text-sm max-w-2xl text-center leading-relaxed">
-            "{motivationalQuotes[0]}"
-          </p>
-
-          {showSessionLog && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-2xl flex items-center justify-center z-[300] p-4 animate-in fade-in">
-              <div className="bg-[#111] rounded-3xl p-10 max-w-sm w-full text-center border border-white/20">
-                <h3 className="text-2xl font-bold mb-8">Session Complete</h3>
-                <div className="space-y-4">
-                  <button onClick={() => logSessionResult('completed')} className="w-full py-4 bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-xl font-bold">100% Focused</button>
-                  <button onClick={() => logSessionResult('partial')} className="w-full py-4 bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded-xl font-bold">Partially Distracted</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div ref={timerRef} className={`h-full flex flex-col items-center justify-center relative transition-all duration-300 animate-in fade-in ${isFullScreen ? (isLightMode ? 'bg-[#FAFAFA]' : 'bg-[#09090B]') : ''}`}>
-        <audio ref={lofiRef} src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" loop /> 
-        
-        <div className="absolute top-6 right-6 flex gap-4">
-          <button onClick={() => setIsZenMode(true)} className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md flex items-center gap-2 ${isLightMode ? 'bg-black text-white hover:bg-slate-800' : 'bg-white text-black hover:bg-slate-200 shadow-[0_0_20px_rgba(255,255,255,0.2)]'}`}>
-            <EyeOff size={16} /> Ultra Zen
-          </button>
-          <button onClick={toggleFullScreen} className={`p-2.5 rounded-xl transition-all ${isLightMode ? 'text-slate-500 hover:bg-white shadow-sm' : 'text-slate-400 hover:bg-white/10'}`} title="Fullscreen">
-            {isFullScreen ? <Minimize size={24} /> : <Maximize size={24} />}
-          </button>
-        </div>
-
-        <div className="text-center w-full max-w-xl px-4">
-          
-          {/* --- LO-FI SOUND BUTTON --- */}
-          <div className="flex justify-center items-center mb-8">
-            <button 
-              onClick={toggleLofi}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${isLofiPlaying ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50 shadow-sm' : `${isLightMode ? 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50' : 'bg-black/20 border-white/5 text-zinc-400 hover:bg-white/5'}`}`}
-            >
-              <Headphones size={18} /> {isLofiPlaying ? 'Pause Lo-Fi Music' : 'Play Focus Lo-Fi'}
-            </button>
-          </div>
-
-          <h2 className={`text-xs font-bold mb-6 uppercase tracking-[0.3em] ${theme.textMuted}`}>
-            {timerMode === 'pomodoro' ? 'Deep Focus Session' : 'Strict Break'}
-          </h2>
-          
-          <div className={`flex justify-center items-center gap-1.5 mb-8 p-1 rounded-xl border w-fit mx-auto backdrop-blur-md ${isLightMode ? 'bg-slate-100 border-slate-200' : 'bg-black/20 border-white/5'}`}>
-            <button onClick={() => setTimerDisplayType('digital')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'digital' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}>
-              <TimerIcon size={16} /> Digital
-            </button>
-            <button onClick={() => setTimerDisplayType('analog')} className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timerDisplayType === 'analog' ? 'bg-white text-slate-900 shadow-sm dark:bg-zinc-800 dark:text-white' : theme.textMuted}`}>
-              <Clock size={16} /> Analog
-            </button>
-          </div>
-
-          {!isActive && !isFullScreen && (
-            <div className="flex justify-center gap-8 mb-8">
-              <div className="flex flex-col items-center">
-                <label className={`text-[10px] mb-2 font-bold uppercase tracking-widest ${theme.textMuted}`}>Work (Min)</label>
-                <input type="number" value={workDuration} onChange={(e) => { const v = e.target.value; setWorkDuration(v); if(timerMode==='pomodoro') setTimeLeft((Number(v)||0)*60);}} className={`w-20 text-center rounded-xl p-2.5 font-mono text-lg font-bold shadow-inner ${theme.input}`} />
-              </div>
-              <div className="flex flex-col items-center">
-                <label className={`text-[10px] mb-2 font-bold uppercase tracking-widest ${theme.textMuted}`}>Break (Min)</label>
-                <input type="number" value={breakDuration} onChange={(e) => { const v = e.target.value; setBreakDuration(v); if(timerMode==='shortBreak') setTimeLeft((Number(v)||0)*60);}} className={`w-20 text-center rounded-xl p-2.5 font-mono text-lg font-bold shadow-inner ${theme.input}`} />
-              </div>
-            </div>
-          )}
-
-          {timerDisplayType === 'digital' ? (
-            <div className={`text-[6rem] md:text-[9rem] font-bold font-mono tracking-tighter leading-none mb-12 drop-shadow-xl transition-colors duration-500 ${timerMode === 'shortBreak' ? 'text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]' : isActive ? (isLightMode ? 'text-slate-900' : 'text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]') : theme.textMuted}`}>
-              {formatTime(timeLeft)}
-            </div>
-          ) : (
-            <div className="relative flex flex-col items-center justify-center mb-10 w-full">
-              <svg width="240" height="240" viewBox="0 0 100 100" className="drop-shadow-2xl mx-auto">
-                <circle cx="50" cy="50" r="48" fill={isLightMode ? '#ffffff' : '#0f172a'} stroke={isLightMode ? '#e2e8f0' : '#1e293b'} strokeWidth="1.5" />
-                {[...Array(12)].map((_, i) => (<line key={i} x1="50" y1="6" x2="50" y2={i % 3 === 0 ? "12" : "9"} stroke={isLightMode ? '#cbd5e1' : '#475569'} strokeWidth={i % 3 === 0 ? "2" : "1"} transform={`rotate(${i * 30} 50 50)`} />))}
-                <line x1="50" y1="50" x2="50" y2="20" stroke={isLightMode ? '#334155' : '#e2e8f0'} strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${(Math.floor((Number(timeLeft)||0)/60)*6)+(((Number(timeLeft)||0)%60)*0.1)} 50 50)`} />
-                <line x1="50" y1="50" x2="50" y2="15" stroke="#ef4444" strokeWidth="1" strokeLinecap="round" transform={`rotate(${((Number(timeLeft)||0)%60)*6} 50 50)`} />
-                <circle cx="50" cy="50" r="3.5" fill="#3b82f6" />
-              </svg>
-              <div className={`absolute bottom-[-10px] px-3 py-1 rounded-lg border backdrop-blur-md text-sm font-mono font-bold tracking-widest shadow-lg ${isLightMode ? 'bg-white/80 border-slate-200 text-slate-800' : 'bg-black/40 border-white/10 text-white'}`}>{formatTime(timeLeft)}</div>
-            </div>
-          )}
-          
-          <div className="flex justify-center items-center gap-6 mb-10">
-            <button onClick={() => { setIsActive(false); setTimeLeft(timerMode === 'pomodoro' ? (Number(workDuration)||50) * 60 : (Number(breakDuration)||10) * 60); }} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white'}`} title="Reset Timer">
-              <RotateCcw size={20} />
-            </button>
-
-            <button onClick={() => setIsActive(!isActive)} className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${isActive ? 'bg-amber-500/10 text-amber-500 border-2 border-amber-500/50 hover:bg-amber-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.4)]'}`}>
-              {isActive ? <Pause size={32} /> : <Play size={32} className="ml-2" />}
-            </button>
-
-            <button onClick={handleStopSession} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all border ${isLightMode ? 'bg-red-50 border-red-200 hover:bg-red-50' : 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20 text-red-500'}`} title="Stop & Log Time">
-              <StopCircle size={24} />
-            </button>
-          </div>
-
-          {!isFullScreen && (
-            <div className={`${theme.cardSolid} rounded-2xl p-5 text-left shadow-lg max-w-lg mx-auto`}>
-              <div className={`text-[10px] font-bold uppercase tracking-widest mb-3 ${theme.textMuted}`}>Currently Executing:</div>
-              <select className={`w-full rounded-xl p-3 text-sm font-semibold outline-none cursor-pointer ${theme.input}`}>
-                {tasks.filter((t) => t.status !== 'completed').map((t) => <option key={t.id}>{t.subject} - {t.topic}</option>)}
-                {tasks.filter((t) => t.status !== 'completed').length === 0 && <option>No active tasks assigned</option>}
-              </select>
-            </div>
-          )}
-        </div>
-
-        {showSessionLog && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-            <div className={`${theme.cardSolid} rounded-3xl p-10 max-w-sm w-full text-center shadow-2xl border border-white/10`}>
-              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-5 text-blue-500"><TimerIcon size={32} /></div>
-              <h3 className="text-2xl font-bold mb-3">Session Complete</h3>
-              <p className={`text-xs font-medium mb-8 ${theme.textMuted}`}>Be honest with yourself. How was your focus?</p>
-              <div className="space-y-3">
-                <button onClick={() => logSessionResult('completed')} className="w-full py-4 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><CheckCircle size={18} /> 100% Focused</button>
-                <button onClick={() => logSessionResult('partial')} className="w-full py-4 bg-amber-500/10 text-amber-500 border border-amber-500/30 hover:bg-amber-500/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><AlertTriangle size={18} /> Partially Distracted</button>
-                <button onClick={() => logSessionResult('failed')} className="w-full py-4 bg-red-500/10 text-red-500 border border-red-500/30 hover:bg-red-500/20 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"><XCircle size={18} /> Wasted (0 Output)</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderMentor = () => (
-    <div className={`flex flex-col h-[calc(100vh-6rem)] ${theme.cardSolid} rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 shadow-xl`}>
-      <div className={`p-5 ${isLightMode ? 'bg-slate-50/80 border-b border-slate-200' : 'bg-black/20 border-b border-white/5'} flex items-center justify-between backdrop-blur-xl`}>
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"><BrainCircuit size={24} /></div>
-          <div><h3 className="font-bold text-lg">Expert CA Mentor</h3><p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${theme.textMuted}`}>Powered by Audit Cubicles</p></div>
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {chatHistory.map((msg, i) => (
-          <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap font-medium shadow-sm ${msg.sender === 'user' ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-sm' : (isLightMode ? 'bg-white border border-slate-200 rounded-bl-sm text-slate-800' : 'bg-white/5 border border-white/10 text-slate-200 rounded-bl-sm backdrop-blur-xl')}`}>
-              {msg.text}
-              <div className={`text-[9px] text-right mt-3 font-bold uppercase tracking-widest ${msg.sender === 'user' ? 'text-blue-200' : theme.textMuted}`}>{msg.time}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={handleChatSubmit} className={`p-5 ${isLightMode ? 'bg-slate-50/80 border-t border-slate-200' : 'bg-black/40 border-t border-white/5'} flex gap-3 backdrop-blur-2xl`}>
-        <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask technical doubts, request strategies, or get motivation..." className={`flex-1 ${theme.input} rounded-xl px-5 py-3.5 text-sm font-medium outline-none shadow-inner`} />
-        <button type="submit" className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] font-bold"><Send size={20} /></button>
-      </form>
-    </div>
-  );
-
-  const renderAnalytics = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    
-    const hrsToday = studyHistory[todayStr] || hoursStudiedToday || 0;
-    const hrsYesterday = studyHistory[yesterdayStr] || 0;
-
-    const last7Days = []; let weekTotal = 0;
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i); const ds = d.toISOString().split('T')[0];
-      const hrs = studyHistory[ds] || (i === 0 ? hoursStudiedToday : 0);
-      weekTotal += Number(hrs); last7Days.push({ day: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: Number(hrs).toFixed(1), raw: Number(hrs) });
-    }
-    const maxChartHrs = Math.max(...last7Days.map(d => d.raw), 10); 
-
-    return (
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div><h2 className="text-2xl font-bold tracking-tight mb-1">Performance Analytics</h2><p className={`text-sm ${theme.textMuted}`}>Track your deep focus hours and consistency.</p></div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Today</div><div className="text-3xl font-black text-blue-500 drop-shadow-sm">{Number(hrsToday).toFixed(1)}h</div></div>
-          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Yesterday</div><div className="text-3xl font-black">{Number(hrsYesterday).toFixed(1)}h</div></div>
-          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Last 7 Days</div><div className="text-3xl font-black text-emerald-500 drop-shadow-sm">{weekTotal.toFixed(1)}h</div></div>
-          <div className={`${theme.card} p-5 rounded-2xl`}><div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${theme.textMuted}`}>Daily Avg</div><div className="text-3xl font-black">{(weekTotal / 7).toFixed(1)}h</div></div>
-        </div>
-
-        <div className={`${theme.cardSolid} rounded-3xl p-8 mt-6 border border-white/10 shadow-xl`}>
-          <h3 className="font-bold text-sm mb-8 flex items-center gap-2 uppercase tracking-widest"><BarChart2 size={18} className="text-blue-500"/> 7-Day Focus Trend</h3>
-          <div className="flex items-end justify-between h-56 gap-3 pt-4">
-            {last7Days.map((data, idx) => {
-              const heightPercent = (data.raw / maxChartHrs) * 100;
-              return (
-                <div key={idx} className="flex flex-col items-center flex-1 group">
-                  <div className={`text-xs font-mono font-bold mb-2 opacity-0 group-hover:opacity-100 transition-opacity ${theme.textMuted}`}>{data.hours}</div>
-                  <div className={`w-full max-w-[48px] rounded-t-xl transition-all duration-700 ${idx === 6 ? 'bg-gradient-to-t from-blue-600 to-cyan-400 shadow-[0_0_15px_rgba(56,189,248,0.5)]' : isLightMode ? 'bg-slate-200 hover:bg-slate-300' : 'bg-white/10 hover:bg-white/20'}`} style={{ height: `${heightPercent}%`, minHeight: '5px' }}></div>
-                  <div className={`text-[10px] font-bold uppercase tracking-wider mt-4 ${idx === 6 ? 'text-blue-500' : theme.textMuted}`}>{data.day}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderTrophyRoom = () => {
-    // Helper to check mastery keywords
     const checkMastery = (keywords) => Object.keys(subjectMastery).some(k => keywords.some(kw => k.includes(kw)) && subjectMastery[k] >= 5);
     
     const isFRPro = checkMastery(['FR', 'FINANCIAL REPORTING']);
@@ -771,6 +723,74 @@ export default function CASathiApp() {
       </div>
     );
   };
+
+  const renderICAIUpdates = () => {
+    const icaiAnnouncements = [
+      { id: 1, date: "22 Mar 2026", badge: "EXAM", title: "Hosting of Mock Test Papers Series - II for May 2026 CA Examinations", link: "https://www.icai.org" },
+      { id: 2, date: "15 Mar 2026", badge: "IMPORTANT", title: "Extension of time for filling exam forms for May 2026 Final & Inter", link: "https://www.icai.org" },
+      { id: 3, date: "05 Mar 2026", badge: "STUDY MAT", title: "Statutory Update for Paper 4: Corporate and Economic Laws", link: "https://www.icai.org" },
+      { id: 4, date: "28 Feb 2026", badge: "GENERAL", title: "Advanced ITT and MCQS updates for May 2026 attempt", link: "https://www.icai.org" },
+      { id: 5, date: "10 Feb 2026", badge: "RESULT", title: "Result of Chartered Accountants Final & Intermediate Examination held in Nov 2025", link: "https://icai.nic.in" },
+    ];
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3"><Megaphone className="text-red-500" /> ICAI Notification Hub</h2>
+            <p className={`text-sm font-medium ${theme.textMuted} mt-1`}>Real-time updates directly from the institute. No need to get distracted elsewhere.</p>
+          </div>
+          <div className="hidden sm:block">
+            <span className="bg-red-500/10 text-red-500 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-widest border border-red-500/20">Live Feed</span>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {icaiAnnouncements.map((item) => (
+            <div key={item.id} className={`${theme.cardSolid} p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-red-500 transition-all hover:-translate-y-1 hover:shadow-lg`}>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-bold px-2 py-1 rounded bg-black/10 dark:bg-white/10 ${theme.textMuted}`}>{item.date}</span>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${item.badge === 'IMPORTANT' ? 'text-red-500' : item.badge === 'EXAM' ? 'text-blue-500' : 'text-emerald-500'}`}>{item.badge}</span>
+                </div>
+                <h3 className="text-base font-semibold leading-snug">{item.title}</h3>
+              </div>
+              <a href={item.link} target="_blank" rel="noreferrer" className="shrink-0">
+                <button className="w-full md:w-auto px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                  View PDF <ExternalLink size={14} />
+                </button>
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMentor = () => (
+    <div className={`flex flex-col h-[calc(100vh-6rem)] ${theme.cardSolid} rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 shadow-xl`}>
+      <div className={`p-5 ${isLightMode ? 'bg-slate-50/80 border-b border-slate-200' : 'bg-black/20 border-b border-white/5'} flex items-center justify-between backdrop-blur-xl`}>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"><BrainCircuit size={24} /></div>
+          <div><h3 className="font-bold text-lg">Expert CA Mentor</h3><p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${theme.textMuted}`}>Powered by Audit Cubicles</p></div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {chatHistory.map((msg, i) => (
+          <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap font-medium shadow-sm ${msg.sender === 'user' ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-sm' : (isLightMode ? 'bg-white border border-slate-200 rounded-bl-sm text-slate-800' : 'bg-white/5 border border-white/10 text-slate-200 rounded-bl-sm backdrop-blur-xl')}`}>
+              {msg.text}
+              <div className={`text-[9px] text-right mt-3 font-bold uppercase tracking-widest ${msg.sender === 'user' ? 'text-blue-200' : theme.textMuted}`}>{msg.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleChatSubmit} className={`p-5 ${isLightMode ? 'bg-slate-50/80 border-t border-slate-200' : 'bg-black/40 border-t border-white/5'} flex gap-3 backdrop-blur-2xl`}>
+        <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Ask technical doubts, request strategies, or get motivation..." className={`flex-1 ${theme.input} rounded-xl px-5 py-3.5 text-sm font-medium outline-none shadow-inner`} />
+        <button type="submit" className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 rounded-xl transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] font-bold"><Send size={20} /></button>
+      </form>
+    </div>
+  );
 
   const renderFacultyNotes = () => {
     const notes = [
@@ -847,7 +867,6 @@ export default function CASathiApp() {
   return (
     <div className={`min-h-screen font-sans flex overflow-hidden transition-colors duration-300 ${theme.bg} ${theme.text}`}>
       
-      {/* SIDEBAR */}
       <aside className={`w-64 border-r flex flex-col hidden md:flex transition-all duration-500 ${theme.sidebar} z-10`}>
         <div className={`p-6 border-b flex flex-col items-start ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
           <div className="flex items-center gap-3 mb-5">
@@ -868,6 +887,7 @@ export default function CASathiApp() {
             { id: 'mentor', name: 'Expert Mentor', icon: <BrainCircuit size={20} /> },
             { id: 'analytics', name: 'Analytics', icon: <BarChart2 size={20} /> },
             { id: 'trophy', name: 'Trophy Room', icon: <Trophy size={20} /> },
+            { id: 'icai_ping', name: 'ICAI Ping', icon: <Megaphone size={20} /> },
             { id: 'faculty_notes', name: 'Faculty Notes', icon: <FolderOpen size={20} /> },
             { id: 'past_papers', name: 'Past Papers', icon: <Library size={20} /> },
             { id: 'quick_notes', name: 'Quick Notes', icon: <FileText size={20} /> },
@@ -885,7 +905,6 @@ export default function CASathiApp() {
           ))}
         </nav>
 
-        {/* Theme Toggle Button */}
         <div className={`p-5 border-t ${isLightMode ? 'border-slate-200' : 'border-white/5'}`}>
           <button 
             onClick={() => setIsLightMode(!isLightMode)}
@@ -897,7 +916,6 @@ export default function CASathiApp() {
         </div>
       </aside>
 
-      {/* DYNAMIC CONTENT AREA */}
       <main className="flex-1 relative overflow-y-auto scrollbar-hide">
         <div className="max-w-5xl mx-auto h-full p-8 pb-32">
           {activeTab === 'dashboard' && renderDashboard()}
@@ -906,13 +924,13 @@ export default function CASathiApp() {
           {activeTab === 'mentor' && renderMentor()}
           {activeTab === 'analytics' && renderAnalytics()}
           {activeTab === 'trophy' && renderTrophyRoom()}
+          {activeTab === 'icai_ping' && renderICAIUpdates()}
           {activeTab === 'faculty_notes' && renderFacultyNotes()}
           {activeTab === 'past_papers' && renderPastPapers()}
           {activeTab === 'quick_notes' && renderQuickNotes()}
         </div>
       </main>
 
-      {/* SMART TOAST NOTIFICATION (15 SECONDS LOCKED) */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-500 max-w-sm">
           <div className={`${theme.cardSolid} border shadow-2xl rounded-2xl p-5 flex items-start gap-4`}>
