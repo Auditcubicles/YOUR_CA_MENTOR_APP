@@ -129,7 +129,7 @@ export default function CASathiApp() {
     const quoteInterval = setInterval(() => {
       const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
       triggerToast(randomQuote, <Zap size={18} className="text-yellow-500" />);
-    }, 3600000); 
+    }, 1200000); 
     return () => clearInterval(quoteInterval);
   }, []);
 
@@ -244,25 +244,10 @@ export default function CASathiApp() {
     else { setTimerMode('pomodoro'); setTimeLeft((Number(workDuration) || 50) * 60); triggerToast('Break over. Back to your books.'); }
   };
 
-  const handleStopSession = () => {
-    setIsActive(false);
-    if (isZenMode) setIsZenMode(false);
-    const safeWorkDur = Number(workDuration) || 50;
-    const totalPlanned = timerMode === 'pomodoro' ? safeWorkDur * 60 : (Number(breakDuration) || 10) * 60;
-    const secondsStudied = totalPlanned - timeLeft;
-    
-    if (timerMode === 'pomodoro' && secondsStudied > 0) {
-      const added = secondsStudied / 3600; 
-      setHoursStudiedToday(prev => prev + added); saveToHistory(added);
-      if ((hoursStudiedToday + added) >= safeTarget && hoursStudiedToday < safeTarget) {
-        setStreak(prev => prev + 1); localStorage.setItem('ca-lastTargetHit', new Date().toISOString().split('T')[0]);
-        triggerToast("Target Hit! Streak Maintained 🔥", <Trophy size={18}/>);
-      }
-      triggerToast(`Saved ${(secondsStudied / 60).toFixed(1)} mins.`);
-    }
-    setTimerMode('pomodoro'); setTimeLeft(safeWorkDur * 60); setShowSessionLog(false); safeExitFullscreen(); 
+  // --- ADD MENTOR MESSAGE HELPER ---
+  const addMentorMessage = (text) => {
+    setChatHistory((prev) => [...prev, { sender: 'mentor', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
   };
-
   const logSessionResult = (status) => {
     setShowSessionLog(false);
     const safeWorkDur = Number(workDuration) || 50;
@@ -278,8 +263,14 @@ export default function CASathiApp() {
 
     if (status === 'completed') {
       triggerToast("Session logged perfectly. Good focus.");
+      addMentorMessage("Good focus. Session logged perfectly. Take a short break."); // --- AI MENTOR AUTO-REPLY ---
       setTimerMode('shortBreak'); setTimeLeft((Number(breakDuration) || 10) * 60); setIsActive(true);
-    } else if (status === 'partial') { triggerToast('Partial session logged. Avoid distractions.'); }
+    } else if (status === 'partial') { 
+      triggerToast('Partial session logged. Avoid distractions.'); 
+      addMentorMessage("Partial session logged. Try to avoid distractions next time."); // --- AI MENTOR AUTO-REPLY ---
+    } else if (status === 'failed') {
+      addMentorMessage("Session wasted. No output logged. Analyze what distracted you and bounce back."); // --- AI MENTOR AUTO-REPLY ---
+    }
   };
 
   const handleChatSubmit = async (e) => {
