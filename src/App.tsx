@@ -11,7 +11,7 @@ const NOTES_LINKS = {
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
 
-// 📑 RTP & MTP COMPILATION LINKS (FIXED!)
+// 📑 RTP & MTP COMPILATION LINKS
 const RTP_LINKS = {
   'Financial Reporting': 'https://drive.google.com/drive/folders/1QuwWAVVp7I_WDHpuk9Jhrlruthpccq-t?usp=drive_link',
   'AFM': 'https://drive.google.com/drive/folders/1wrhq4le7R67_44puqXpfm_JNNLL3M4Th?usp=drive_link',
@@ -20,7 +20,6 @@ const RTP_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
   'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
 };
-
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const TARGET_CATEGORIES = [
@@ -252,20 +251,12 @@ export default function App() {
       return data.candidates[0].content.parts[0].text;
     };
 
-    const modelsToTry = ['gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-    let success = false;
-    let lastError = '';
-
-    for (const model of modelsToTry) {
-      try {
-        const reply = await tryModel(model);
-        setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
-        success = true; break;
-      } catch (err) {
-        lastError = err.message;
-      }
+    try {
+      const reply = await tryModel('gemini-1.5-flash');
+      setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+    } catch (err) {
+      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure key is fresh from aistudio.google.com!` }]);
     }
-    if (!success) setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: Unable to connect. Last error: ${lastError}. Ensure key is fresh from aistudio.google.com!` }]);
   };
 
   const getWeeklyData = () => {
@@ -283,7 +274,8 @@ export default function App() {
     if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
 
-  const TimerWidget = () => (
+  // 🚀 MOVED RENDER FUNCTIONS OUTSIDE TO FIX SCROLL JUMP BUG
+  const renderTimerWidget = () => (
     <div className={`timer-widget ${isDND ? 'dnd-mode' : ''}`}>
       {isDND && (
         <div className="dnd-header">
@@ -358,7 +350,8 @@ export default function App() {
     </div>
   );
 
-  const TargetListRenderer = ({ tasks }) => (
+  // 🚀 MOVED RENDER FUNCTION OUTSIDE TO FIX SCROLL JUMP BUG
+  const renderTargetList = (tasks) => (
     <ul className="task-list scrollable-mini">
       {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
         tasks.map(t => (
@@ -392,7 +385,7 @@ export default function App() {
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
 
-      {isDND && <div className="dnd-overlay"><TimerWidget /></div>}
+      {isDND && <div className="dnd-overlay">{renderTimerWidget()}</div>}
 
       <header className="header">
         <div className="header-left">
@@ -431,7 +424,7 @@ export default function App() {
                   <button key={sub} className={`sub-btn ${selectedSubject === sub ? 'active' : ''}`} onClick={() => setSelectedSubject(sub)}>{sub}</button>
                 ))}
               </div>
-              {!isDND && <TimerWidget />}
+              {!isDND && renderTimerWidget()}
             </div>
 
             <div className="dashboard-right-col">
@@ -440,7 +433,7 @@ export default function App() {
                   <h2>Today's Targets</h2>
                   <button className="btn reset-btn-control" style={{width:'auto', padding:'5px 15px', fontSize:'0.8rem'}} onClick={() => setActiveTab('Targets')}>Add New +</button>
                 </div>
-                <TargetListRenderer tasks={todayTodos} />
+                {renderTargetList(todayTodos)}
               </div>
 
               <div className="today-sessions panel mini-panel">
@@ -483,7 +476,7 @@ export default function App() {
 
           <h3 className="section-title" style={{marginTop: '30px'}}>Your Master To-Do List</h3>
           <div className="full-target-list-wrapper">
-             <TargetListRenderer tasks={todayTodos} />
+             {renderTargetList(todayTodos)}
           </div>
         </div>
       )}
