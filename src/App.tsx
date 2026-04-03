@@ -20,7 +20,6 @@ const RTP_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
   'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
 };
-
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const TARGET_CATEGORIES = [
@@ -85,7 +84,6 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
 
-  // Persistence
   useEffect(() => localStorage.setItem('sessions', JSON.stringify(sessions)), [sessions]);
   useEffect(() => localStorage.setItem('todos', JSON.stringify(todos)), [todos]);
   useEffect(() => localStorage.setItem('dailyGoal', dailyGoal), [dailyGoal]);
@@ -95,7 +93,6 @@ export default function App() {
   useEffect(() => localStorage.setItem('geminiApiKey', apiKey), [apiKey]);
   useEffect(() => localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements)), [unlockedAchievements]);
 
-  // Math & Stats
   const todayStr = new Date().toLocaleDateString();
   const todaySessions = sessions.filter(s => new Date(s.date).toLocaleDateString() === todayStr);
   const todayHours = (todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
@@ -104,7 +101,6 @@ export default function App() {
   const daysRemaining = Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
   const uniqueSubjectsToday = new Set(todaySessions.map(s => s.subject)).size;
 
-  // Achievements Evaluation
   useEffect(() => {
     let newUnlocks = [...unlockedAchievements];
     let changed = false;
@@ -129,7 +125,6 @@ export default function App() {
     if (changed) setUnlockedAchievements(newUnlocks);
   }, [sessions, todayHours, totalHoursLogged, streakData.count, uniqueSubjectsToday]);
 
-  // Streak Logic
   useEffect(() => {
     const today = new Date().toLocaleDateString();
     let currentData = { ...streakData };
@@ -145,7 +140,6 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
-  // Timer & Logging
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -157,13 +151,18 @@ export default function App() {
   const endAndLogEarly = () => {
     const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
     const elapsedMins = Math.floor(timeElapsedSecs / 60);
+
     if (elapsedMins < 1) {
       alert("Session too short to log (under 1 minute). Timer reset.");
-      setIsActive(false); setTimeLeft(pomodoroLength * 60); return;
+      setIsActive(false);
+      setTimeLeft(pomodoroLength * 60);
+      return;
     }
+
     const newSession = { id: Date.now(), subject: selectedSubject, duration: elapsedMins, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
-    setIsActive(false); setTimeLeft(pomodoroLength * 60);
+    setIsActive(false);
+    setTimeLeft(pomodoroLength * 60);
     alert(`Partial Session Logged: ${elapsedMins} mins!`);
   };
 
@@ -192,7 +191,6 @@ export default function App() {
   const timeObj = formatTime(timeLeft);
   const progressPercent = ((pomodoroLength * 60 - timeLeft) / (pomodoroLength * 60)) * 100;
 
-  // PIP Engine
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -218,7 +216,6 @@ export default function App() {
     }
   };
 
-  // To-Dos
   const handleAddStructuredTask = (e) => {
     e.preventDefault();
     if (!targetTopic.trim()) return;
@@ -226,11 +223,11 @@ export default function App() {
     setTodos([newTask, ...todos]);
     setTargetTopic(''); 
   };
+
   const toggleTodo = (id) => setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // 🧠 AI MENTOR ENGINE (Attempting 3.1 Flash, safe fallback to 1.5 Flash)
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -246,32 +243,19 @@ export default function App() {
 
     const tryModel = async (modelName) => {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       });
       const data = await response.json();
-      
-      if (data.error) {
-        if (data.error.code === 429) throw new Error("RATE LIMIT HIT: Wait a minute before asking again.");
-        throw new Error(data.error.message);
-      }
+      if (data.error) throw new Error(data.error.message);
       return data.candidates[0].content.parts[0].text;
     };
 
     try {
-      try {
-        // Demanding Gemini 3.1 Flash per instructions
-        const reply3 = await tryModel('gemini-3.1-flash');
-        setChatMessages([...newMsgs, { sender: 'bot', text: reply3 }]);
-      } catch (err3) {
-        console.warn("Gemini 3.1 not available. Falling back to Gemini 1.5 Flash (Free Tier Guaranteed)...", err3);
-        // Falling back to 1.5 Flash to guarantee no billing/quota crashes for standard keys
-        const reply15 = await tryModel('gemini-1.5-flash');
-        setChatMessages([...newMsgs, { sender: 'bot', text: reply15 }]);
-      }
-    } catch (finalErr) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${finalErr.message}. Check your API key or quota at aistudio.google.com.` }]);
+      const reply = await tryModel('gemini-1.5-flash');
+      setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+    } catch (err) {
+      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure key is fresh from aistudio.google.com!` }]);
     }
   };
 
@@ -290,7 +274,7 @@ export default function App() {
     if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
 
-  // Modular Renders (Prevents Scroll Jump)
+  // 🚀 MOVED RENDER FUNCTIONS OUTSIDE TO FIX SCROLL JUMP BUG
   const renderTimerWidget = () => (
     <div className={`timer-widget ${isDND ? 'dnd-mode' : ''}`}>
       {isDND && (
@@ -349,9 +333,11 @@ export default function App() {
       
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
+        
         {(timeLeft < pomodoroLength * 60) && (
           <button className="btn end-log-btn" onClick={endAndLogEarly}>END & LOG</button>
         )}
+        
         <button className="btn reset-btn-control" onClick={resetTimer}>RESET</button>
       </div>
 
@@ -364,6 +350,7 @@ export default function App() {
     </div>
   );
 
+  // 🚀 MOVED RENDER FUNCTION OUTSIDE TO FIX SCROLL JUMP BUG
   const renderTargetList = (tasks) => (
     <ul className="task-list scrollable-mini">
       {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
@@ -393,7 +380,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Invisible Canvas for True Browser PIP */}
       <div style={{ position: 'fixed', top: '-1000px', left: '-1000px', opacity: 0, pointerEvents: 'none' }}>
         <canvas ref={canvasRef} width="600" height="400" />
         <video ref={videoRef} muted autoPlay playsInline />
@@ -483,7 +469,7 @@ export default function App() {
               </select>
             </div>
             <div className="form-row">
-              <input type="text" placeholder="Enter Chapter or Topic Name (e.g. AS-19 Leases)..." value={targetTopic} onChange={(e) => setTargetTopic(e.target.value)} className="task-input" />
+              <input type="text" placeholder="Enter Chapter or Topic Name (e.g. AS-19 Leases, Block Assessments)..." value={targetTopic} onChange={(e) => setTargetTopic(e.target.value)} className="task-input" />
               <button type="submit" className="btn start focus-btn" style={{width: '200px'}}>Add Target</button>
             </div>
           </form>
