@@ -247,7 +247,7 @@ export default function App() {
       return;
     }
 
-    const promptText = `You are a Passionate, Modern, Cool, and a Trustworthy experienced CA Faculty,for a CA Final student. Reply Should range in between 5 to 30 words or more as required. Student says: ${chatInput}`;
+    const promptText = `You are a Passionate, Modern, Cool, and a Trustworthy experienced CA Faculty, Your motive is to solve the doubts of the students in by provideing them indepth knowledge as they required and you should ensure that query is resolved,for a CA Final student. Reply should be detailed or as per the query. Student says: ${chatInput}`;
 
     const tryModel = async (modelName) => {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
@@ -408,7 +408,7 @@ export default function App() {
           <div className="logo">CA</div>
           <div className="user-greeting">
             <h1>Sathi</h1>
-            <p>DEVELOPED BY NIKET TALWAR (Follow Audit Cubicles on Telegram)</p>
+            <p>DEVELOPED BY NIKET TALWAR</p>
           </div>
         </div>
         <nav className="header-center">
@@ -485,7 +485,7 @@ export default function App() {
               </select>
             </div>
             <div className="form-row">
-              <input type="text" placeholder="Enter Chapter or Topic Name (e.g. AS-19 Leases, Block Assessments)..." value={targetTopic} onChange={(e) => setTargetTopic(e.target.value)} className="task-input" />
+              <input type="text" placeholder="Enter Chapter or Topic Name (e.g. INDAS-116 Leases, Block Assessments)..." value={targetTopic} onChange={(e) => setTargetTopic(e.target.value)} className="task-input" />
               <button type="submit" className="btn start focus-btn" style={{width: '200px'}}>Add Target</button>
             </div>
           </form>
