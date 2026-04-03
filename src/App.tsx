@@ -10,7 +10,7 @@ const NOTES_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1fiRYgdDj8Zkl9s11Sguw03okzS18SMnJ95DIqOnaEZI0LoTLe8BR4x2HWPHmXMQ2iINWdu9M',
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
-const RTP_LINKS = { ...NOTES_LINKS }; // Using same links for simplicity based on your prompt structure
+const RTP_LINKS = { ...NOTES_LINKS }; 
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const StatsCard = ({ icon, title, value, subtext, type }) => (
@@ -21,7 +21,6 @@ const StatsCard = ({ icon, title, value, subtext, type }) => (
   </div>
 );
 
-// 🏆 THE ACHIEVEMENT ENGINE
 const ACHIEVEMENTS_DB = [
   { id: 'daily_3', icon: '🥉', title: 'Bronze Grind', desc: 'Study 3+ hours in a day', target: 3, type: 'daily' },
   { id: 'daily_6', icon: '🥈', title: 'Silver Hustle', desc: 'Study 6+ hours in a day', target: 6, type: 'daily' },
@@ -49,7 +48,6 @@ export default function App() {
   const [streakData, setStreakData] = useState(() => JSON.parse(localStorage.getItem('streakData')) || { count: 0, lastLogin: null, targetHitToday: false });
   const [unlockedAchievements, setUnlockedAchievements] = useState(() => JSON.parse(localStorage.getItem('unlockedAchievements')) || []);
 
-  // Timer State
   const [pomodoroLength, setPomodoroLength] = useState(25);
   const [customMins, setCustomMins] = useState('');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -57,11 +55,12 @@ export default function App() {
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [clockStyle, setClockStyle] = useState('minimal'); 
   
-  // Modes
+  // 🎥 REFS FOR LIVE PIP
+  const canvasRef = useRef(null);
+  const videoRef = useRef(null);
   const [isDND, setIsDND] = useState(false);
   const [newTask, setNewTask] = useState('');
 
-  // Mentor Chat State
   const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages')) || [{ sender: 'bot', text: 'Hey Niket! CA Sathi is online. How can I help you grind today?' }]);
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
@@ -89,7 +88,6 @@ export default function App() {
   useEffect(() => {
     let newUnlocks = [...unlockedAchievements];
     let changed = false;
-
     ACHIEVEMENTS_DB.forEach(ach => {
       if (!newUnlocks.some(u => u.id === ach.id)) {
         let earned = false;
@@ -101,11 +99,9 @@ export default function App() {
           const subHours = sessions.filter(s => s.subject === ach.sub).reduce((sum, s) => sum + s.duration, 0) / 60;
           if (subHours >= ach.target) earned = true;
         }
-
         if (earned) {
           newUnlocks.push({ id: ach.id, date: new Date().toLocaleDateString(), month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }) });
           changed = true;
-          // Avoid alert spam on load, only alert if actively running
           if(isActive) alert(`🏆 ACHIEVEMENT UNLOCKED: ${ach.title}!`); 
         }
       }
@@ -149,7 +145,7 @@ export default function App() {
   const resetTimer = () => { setIsActive(false); setTimeLeft(pomodoroLength * 60); };
   const setPomodoro = (mins) => { setPomodoroLength(mins); setTimeLeft(mins * 60); setIsActive(false); setCustomMins(''); };
   const handleCustomTime = (e) => { e.preventDefault(); if(customMins > 0) setPomodoro(Number(customMins)); };
-
+  
   const toggleDND = () => {
     if (!isDND && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
     else if (document.exitFullscreen) document.exitFullscreen();
@@ -163,6 +159,49 @@ export default function App() {
   const timeObj = formatTime(timeLeft);
   const progressPercent = ((pomodoroLength * 60 - timeLeft) / (pomodoroLength * 60)) * 100;
 
+  // 🚀 THE FIXED PIP ENGINE
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw Dark Background
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw Timer
+    ctx.fillStyle = '#f0f6fc';
+    ctx.font = 'bold 120px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(timeObj.full, canvas.width / 2, canvas.height / 2 - 20);
+    
+    // Draw Subject
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 30px Inter, sans-serif';
+    ctx.fillText(selectedSubject.toUpperCase(), canvas.width / 2, canvas.height / 2 + 70);
+
+    // Draw Status
+    ctx.fillStyle = isActive ? '#22c55e' : '#ef4444';
+    ctx.font = '20px Inter, sans-serif';
+    ctx.fillText(isActive ? '● FOCUSING' : '⏸ PAUSED', canvas.width / 2, canvas.height / 2 + 110);
+  }, [timeLeft, selectedSubject, isActive]);
+
+  const toggleNativePIP = async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        const video = videoRef.current;
+        video.srcObject = canvasRef.current.captureStream(15); 
+        await video.play();
+        await video.requestPictureInPicture();
+      }
+    } catch (err) {
+      alert("PIP Error: Ensure you click the button directly. Browser error: " + err.message);
+    }
+  };
+
   // To-Dos
   const handleAddTask = (e) => {
     e.preventDefault();
@@ -174,7 +213,7 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // Fixed Robust AI Mentor
+  // 🚀 THE FIXED AI MENTOR (Locked to gemini-1.5-flash)
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -182,38 +221,29 @@ export default function App() {
     setChatInput('');
 
     if (!apiKey) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: "⚠️ Please paste your Gemini API Key in the Settings tab." }]);
+      setChatMessages([...newMsgs, { sender: 'bot', text: "⚠️ ERROR: Please paste your Gemini API Key in the Settings tab." }]);
       return;
     }
 
     try {
-      // Trying the newest, most stable general endpoint 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      // STRICTLY using 1.5-flash. NO FALLBACKS. This is the most stable endpoint.
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}` }] }] })
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}` }] }] 
+        })
       });
       
-      let data = await response.json();
+      const data = await response.json();
       
-      // Fallback to older model if 2.0 isn't available on their key
-      if(data.error) {
-         console.log("2.0 failed, trying gemini-pro fallback...");
-         const fallback = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: `You are a CA mentor. Reply short. User: ${chatInput}` }] }] })
-         });
-         data = await fallback.json();
-      }
-
       if(data.error) throw new Error(data.error.message);
       setChatMessages([...newMsgs, { sender: 'bot', text: data.candidates[0].content.parts[0].text }]);
     } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure your key is valid.` }]);
+      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure your key is valid and has permissions.` }]);
     }
   };
 
-  // Weekly Chart Data Logic
   const getWeeklyData = () => {
     const days = [];
     let maxHrs = 1;
@@ -228,7 +258,6 @@ export default function App() {
   };
   const weeklyData = getWeeklyData();
 
-  // Helper for grouping achievements
   const achievementsByMonth = unlockedAchievements.reduce((acc, current) => {
     if (!acc[current.month]) acc[current.month] = [];
     acc[current.month].push(current);
@@ -297,8 +326,10 @@ export default function App() {
         <button className="btn reset-btn-control" onClick={resetTimer}>RESET</button>
       </div>
 
+      {/* 🚀 THE RESTORED PIP & DND BUTTONS */}
       {!isDND && (
-        <div className="pro-controls">
+        <div className="pro-controls" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+          <button className="btn pro-btn pip-btn" onClick={toggleNativePIP}>🖥️ Floating PIP Timer</button>
           <button className="btn pro-btn dnd" onClick={toggleDND}>🌙 Enter Fullscreen DND</button>
         </div>
       )}
@@ -307,6 +338,12 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Hidden elements for Native PIP */}
+      <div style={{ position: 'fixed', top: '-1000px', left: '-1000px', opacity: 0, pointerEvents: 'none' }}>
+        <canvas ref={canvasRef} width="600" height="400" />
+        <video ref={videoRef} muted autoPlay playsInline />
+      </div>
+
       {isDND && <div className="dnd-overlay"><TimerWidget /></div>}
 
       <header className="header">
