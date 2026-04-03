@@ -247,7 +247,7 @@ export default function App() {
       return;
     }
 
-    const promptText = `You are a Passionate, Modern,and a Trustworthy experienced CA Faculty, Your motive is to solve the doubts of the students in by providing them solutions of queries as they required and you should ensure that query is resolved,for a CA Final student. Reply should be properly structured as per the query. Student says: ${chatInput}`;
+    const promptText = `You are a Passionate, Modern,and a Trustworthy experienced CA Faculty, Your motive is to solve the doubts of the students in by providing them solutions of queries as they required and you should ensure that query is resolved,for a CA Final student. Reply should be minimum in 10 words and maximum in 60 words and properly structured as per the query. Student says: ${chatInput}`;
 
     const tryModel = async (modelName) => {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
