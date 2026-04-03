@@ -229,7 +229,7 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // 🚀 RESTORED WORKING MENTOR (Locked to gemini-1.5-flash)
+  // 🚀 THE ULTIMATE AUTO-DISCOVERY MENTOR ENGINE
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -242,20 +242,44 @@ export default function App() {
     }
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // Step 1: Ask Google exactly what models this API key has access to
+      const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const listData = await listResponse.json();
+
+      if (listData.error) throw new Error(`Key Check Failed: ${listData.error.message}`);
+
+      // Filter for models that can generate text
+      const validModels = listData.models.filter(m => 
+        m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
+      );
+
+      if (validModels.length === 0) throw new Error("This API key has no text generation models available.");
+
+      // Step 2: Auto-select the smartest available model
+      let selectedModel = 
+        validModels.find(m => m.name.includes('gemini-2.0-flash'))?.name ||
+        validModels.find(m => m.name.includes('gemini-1.5-flash'))?.name ||
+        validModels.find(m => m.name.includes('gemini'))?.name ||
+        validModels[0].name;
+
+      console.log("Auto-selected model:", selectedModel);
+
+      // Step 3: Make the actual generation request
+      const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
+      
+      const genResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          contents: [{ parts: [{ text: `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}` }] }] 
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       });
-      
-      const data = await response.json();
-      
-      if(data.error) throw new Error(data.error.message);
-      setChatMessages([...newMsgs, { sender: 'bot', text: data.candidates[0].content.parts[0].text }]);
+
+      const genData = await genResponse.json();
+
+      if (genData.error) throw new Error(genData.error.message);
+
+      setChatMessages([...newMsgs, { sender: 'bot', text: genData.candidates[0].content.parts[0].text }]);
     } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Please ensure your API key is valid.` }]);
+      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. If this persists, create a new key at aistudio.google.com` }]);
     }
   };
 
@@ -270,7 +294,6 @@ export default function App() {
     return { days, maxHrs };
   };
   const weeklyData = getWeeklyData();
-
   const achievementsByMonth = unlockedAchievements.reduce((acc, current) => {
     if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
