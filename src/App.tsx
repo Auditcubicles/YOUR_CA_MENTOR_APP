@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 
-// 📚 LINKS
+// 📚 FACULTY & RTP LINKS
 const NOTES_LINKS = {
   'Financial Reporting': 'https://drive.google.com/drive/folders/1ANLP_7cw7AXKkjWw4Lxp4mw7EuqcoosjuO3aR5SdqVo2oHMaVr5MiozHC662fDdpWfjsB0aP',
   'AFM': 'https://drive.google.com/drive/folders/14Ab9fZoPCcpnlDGc2bU-qTjxl6_PpdsPE_G0ndASdsFrRpPv9M4tYjRN3yPgFouCI7kQtDMq',
@@ -10,19 +10,35 @@ const NOTES_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1fiRYgdDj8Zkl9s11Sguw03okzS18SMnJ95DIqOnaEZI0LoTLe8BR4x2HWPHmXMQ2iINWdu9M',
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
-const RTP_LINKS = {
-  'Financial Reporting': 'https://drive.google.com/drive/folders/1QuwWAVVp7I_WDHpuk9Jhrlruthpccq-t',
-  'AFM': 'https://drive.google.com/drive/folders/1wrhq4le7R67_44puqXpfm_JNNLL3M4Th',
-  'AUDIT': 'https://drive.google.com/drive/folders/1RviDhUZj1AvHRAU4Im5W0wPu1dtWaahd',
-  'Direct Tax': 'https://drive.google.com/drive/folders/1HyQJdCFfRci__mRrHC6h-1nLR-JMvxKG',
-  'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX',
-  'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo'
-};
+const RTP_LINKS = { ...NOTES_LINKS }; // Using same links for simplicity based on your prompt structure
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const StatsCard = ({ icon, title, value, subtext, type }) => (
-  <div className={`stats-card ${type || ''}`}><div className="card-header"><span className="card-icon">{icon}</span><h3 className="card-title">{title}</h3></div><p className="card-value">{value}</p><p className={`card-subtext ${type || ''}`}>{subtext}</p></div>
+  <div className={`stats-card ${type || ''}`}>
+    <div className="card-header"><span className="card-icon">{icon}</span><h3 className="card-title">{title}</h3></div>
+    <p className="card-value">{value}</p>
+    <p className={`card-subtext ${type || ''}`}>{subtext}</p>
+  </div>
 );
+
+// 🏆 THE ACHIEVEMENT ENGINE
+const ACHIEVEMENTS_DB = [
+  { id: 'daily_3', icon: '🥉', title: 'Bronze Grind', desc: 'Study 3+ hours in a day', target: 3, type: 'daily' },
+  { id: 'daily_6', icon: '🥈', title: 'Silver Hustle', desc: 'Study 6+ hours in a day', target: 6, type: 'daily' },
+  { id: 'daily_10', icon: '🥇', title: 'Gold Mastery', desc: 'Study 10+ hours in a day', target: 10, type: 'daily' },
+  { id: 'daily_12', icon: '💎', title: 'Diamond Focus', desc: 'Study 12+ hours in a day', target: 12, type: 'daily' },
+  { id: 'streak_3', icon: '🔥', title: 'Getting Warm', desc: 'Hit daily goal 3 days in a row', target: 3, type: 'streak' },
+  { id: 'streak_7', icon: '🌋', title: 'Consistent CA', desc: 'Hit daily goal 7 days in a row', target: 7, type: 'streak' },
+  { id: 'streak_14', icon: '⚡', title: 'Unstoppable', desc: 'Hit daily goal 14 days in a row', target: 14, type: 'streak' },
+  { id: 'streak_30', icon: '👑', title: 'Discipline King', desc: 'Hit daily goal 30 days in a row', target: 30, type: 'streak' },
+  { id: 'total_50', icon: '📚', title: 'Bookworm', desc: 'Log 50 total hours', target: 50, type: 'total' },
+  { id: 'total_100', icon: '🎓', title: 'Scholar', desc: 'Log 100 total hours', target: 100, type: 'total' },
+  { id: 'total_250', icon: '🏛️', title: 'Expert', desc: 'Log 250 total hours', target: 250, type: 'total' },
+  { id: 'total_500', icon: '🌌', title: 'CA Legend', desc: 'Log 500 total hours', target: 500, type: 'total' },
+  { id: 'polymath', icon: '🧠', title: 'Polymath', desc: 'Study 4 different subjects in one day', target: 4, type: 'variety' },
+  { id: 'fr_master', icon: '📘', title: 'FR Specialist', desc: 'Log 20 hours in Financial Reporting', target: 20, type: 'subject', sub: 'Financial Reporting' },
+  { id: 'audit_master', icon: '🕵️', title: 'Audit Specialist', desc: 'Log 20 hours in Audit', target: 20, type: 'subject', sub: 'AUDIT' }
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -31,24 +47,24 @@ export default function App() {
   const [dailyGoal, setDailyGoal] = useState(() => Number(localStorage.getItem('dailyGoal')) || 10);
   const [examDate, setExamDate] = useState(() => localStorage.getItem('examDate') || '2026-05-01');
   const [streakData, setStreakData] = useState(() => JSON.parse(localStorage.getItem('streakData')) || { count: 0, lastLogin: null, targetHitToday: false });
-  const [unlockedTrophies, setUnlockedTrophies] = useState(() => JSON.parse(localStorage.getItem('unlockedTrophies')) || {});
-  
-  // Timer & UI State
+  const [unlockedAchievements, setUnlockedAchievements] = useState(() => JSON.parse(localStorage.getItem('unlockedAchievements')) || []);
+
+  // Timer State
   const [pomodoroLength, setPomodoroLength] = useState(25);
   const [customMins, setCustomMins] = useState('');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
-  const [clockStyle, setClockStyle] = useState('minimal'); // 'standard', 'flip', 'minimal'
-  const [analyticsView, setAnalyticsView] = useState('daily');
+  const [clockStyle, setClockStyle] = useState('minimal'); 
+  
+  // Modes
   const [isDND, setIsDND] = useState(false);
   const [newTask, setNewTask] = useState('');
 
-  // Mentor Chat
-  const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages')) || [{ sender: 'bot', text: 'Hey Niket! CA Sathi is online.' }]);
+  // Mentor Chat State
+  const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages')) || [{ sender: 'bot', text: 'Hey Niket! CA Sathi is online. How can I help you grind today?' }]);
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
-  const [aiModel, setAiModel] = useState(() => localStorage.getItem('aiModel') || 'gemini-1.5-pro-latest');
 
   // Persistence
   useEffect(() => localStorage.setItem('sessions', JSON.stringify(sessions)), [sessions]);
@@ -56,31 +72,70 @@ export default function App() {
   useEffect(() => localStorage.setItem('dailyGoal', dailyGoal), [dailyGoal]);
   useEffect(() => localStorage.setItem('examDate', examDate), [examDate]);
   useEffect(() => localStorage.setItem('streakData', JSON.stringify(streakData)), [streakData]);
-  useEffect(() => localStorage.setItem('unlockedTrophies', JSON.stringify(unlockedTrophies)), [unlockedTrophies]);
   useEffect(() => localStorage.setItem('chatMessages', JSON.stringify(chatMessages)), [chatMessages]);
-  useEffect(() => { localStorage.setItem('geminiApiKey', apiKey); localStorage.setItem('aiModel', aiModel); }, [apiKey, aiModel]);
+  useEffect(() => localStorage.setItem('geminiApiKey', apiKey), [apiKey]);
+  useEffect(() => localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements)), [unlockedAchievements]);
 
-  // Streak & Unlock Logic
+  // Math & Stats
+  const todayStr = new Date().toLocaleDateString();
+  const todaySessions = sessions.filter(s => new Date(s.date).toLocaleDateString() === todayStr);
+  const todayHours = (todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
+  const isBehind = todayHours < dailyGoal;
+  const totalHoursLogged = (sessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(0);
+  const daysRemaining = Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
+  const uniqueSubjectsToday = new Set(todaySessions.map(s => s.subject)).size;
+
+  // Evaluate Achievements
+  useEffect(() => {
+    let newUnlocks = [...unlockedAchievements];
+    let changed = false;
+
+    ACHIEVEMENTS_DB.forEach(ach => {
+      if (!newUnlocks.some(u => u.id === ach.id)) {
+        let earned = false;
+        if (ach.type === 'daily' && todayHours >= ach.target) earned = true;
+        if (ach.type === 'streak' && streakData.count >= ach.target) earned = true;
+        if (ach.type === 'total' && totalHoursLogged >= ach.target) earned = true;
+        if (ach.type === 'variety' && uniqueSubjectsToday >= ach.target) earned = true;
+        if (ach.type === 'subject') {
+          const subHours = sessions.filter(s => s.subject === ach.sub).reduce((sum, s) => sum + s.duration, 0) / 60;
+          if (subHours >= ach.target) earned = true;
+        }
+
+        if (earned) {
+          newUnlocks.push({ id: ach.id, date: new Date().toLocaleDateString(), month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }) });
+          changed = true;
+          // Avoid alert spam on load, only alert if actively running
+          if(isActive) alert(`🏆 ACHIEVEMENT UNLOCKED: ${ach.title}!`); 
+        }
+      }
+    });
+    if (changed) setUnlockedAchievements(newUnlocks);
+  }, [sessions, todayHours, totalHoursLogged, streakData.count, uniqueSubjectsToday]);
+
+  // Streak Logic
   useEffect(() => {
     const today = new Date().toLocaleDateString();
     let currentData = { ...streakData };
     if (currentData.lastLogin !== today) {
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-      if (currentData.lastLogin !== yesterday.toLocaleDateString() && currentData.lastLogin !== null) currentData.count = 0;
+      if (currentData.lastLogin === yesterday.toLocaleDateString() && currentData.targetHitToday) { } 
+      else if (currentData.lastLogin !== null) { currentData.count = 0; }
       currentData.lastLogin = today; currentData.targetHitToday = false;
       setStreakData(currentData);
     }
-    const todayHours = sessions.filter(s => new Date(s.date).toLocaleDateString() === today).reduce((sum, s) => sum + s.duration, 0) / 60;
-    if (todayHours >= dailyGoal && !currentData.targetHitToday) setStreakData({ ...currentData, targetHitToday: true, count: currentData.count + 1 });
-  }, [sessions, dailyGoal]);
+    if (todayHours >= dailyGoal && !currentData.targetHitToday) {
+      setStreakData({ ...currentData, targetHitToday: true, count: currentData.count + 1 });
+    }
+  }, [sessions, dailyGoal, todayHours]);
 
-  // Timer Execution
+  // Timer Logic
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
-    setIsActive(false); setTimeLeft(pomodoroLength * 60);
+    setIsActive(false);
+    setTimeLeft(pomodoroLength * 60);
     alert('Focus Session Logged!');
-    checkAchievements(newSession);
   }, [selectedSubject, pomodoroLength]);
 
   useEffect(() => {
@@ -97,7 +152,7 @@ export default function App() {
 
   const toggleDND = () => {
     if (!isDND && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-    else if (document.exitFullscreen) document.exitFullscreen().catch(e => console.log(e));
+    else if (document.exitFullscreen) document.exitFullscreen();
     setIsDND(!isDND);
   };
 
@@ -106,159 +161,134 @@ export default function App() {
     return { mins: `${m < 10 ? '0' : ''}${m}`, secs: `${s < 10 ? '0' : ''}${s}`, full: `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}` };
   };
   const timeObj = formatTime(timeLeft);
+  const progressPercent = ((pomodoroLength * 60 - timeLeft) / (pomodoroLength * 60)) * 100;
 
   // To-Dos
-  const handleAddTask = (e) => { e.preventDefault(); if (!newTask.trim()) return; setTodos([{ id: Date.now(), text: newTask, done: false, date: new Date().toLocaleDateString() }, ...todos]); setNewTask(''); };
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    setTodos([{ id: Date.now(), text: newTask, done: false, date: new Date().toLocaleDateString() }, ...todos]);
+    setNewTask('');
+  };
   const toggleTodo = (id) => setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
+  const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // AI Mentor API (Fixed Model Engine)
+  // Fixed Robust AI Mentor
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
-    setChatMessages(newMsgs); setChatInput('');
-    if (!apiKey) return setChatMessages([...newMsgs, { sender: 'bot', text: "ERROR: Set your API Key in Settings." }]);
+    setChatMessages(newMsgs);
+    setChatInput('');
+
+    if (!apiKey) {
+      setChatMessages([...newMsgs, { sender: 'bot', text: "⚠️ Please paste your Gemini API Key in the Settings tab." }]);
+      return;
+    }
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: `You are a strict AI mentor for Niket, a CA final student. Keep it short. Niket says: ${chatInput}` }] }] })
+      // Trying the newest, most stable general endpoint 
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}` }] }] })
       });
-      const data = await response.json();
+      
+      let data = await response.json();
+      
+      // Fallback to older model if 2.0 isn't available on their key
+      if(data.error) {
+         console.log("2.0 failed, trying gemini-pro fallback...");
+         const fallback = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: `You are a CA mentor. Reply short. User: ${chatInput}` }] }] })
+         });
+         data = await fallback.json();
+      }
+
       if(data.error) throw new Error(data.error.message);
       setChatMessages([...newMsgs, { sender: 'bot', text: data.candidates[0].content.parts[0].text }]);
     } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}` }]);
+      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure your key is valid.` }]);
     }
   };
 
-  // Dashboard Math
-  const todayStr = new Date().toLocaleDateString();
-  const todaySessions = sessions.filter(s => new Date(s.date).toLocaleDateString() === todayStr);
-  const todayHours = (todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
-  const totalHours = (sessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(0);
-  const daysRemaining = Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
-
-  // --- MEGA TROPHY SYSTEM ---
-  const checkAchievements = (lastSession) => {
-    const newUnlocks = { ...unlockedTrophies };
-    const monthStr = new Date().toLocaleString('default', { month: 'short', year: 'numeric' });
-    const unlock = (id) => { if (!newUnlocks[id]) newUnlocks[id] = monthStr; };
-
-    if (sessions.length >= 1) unlock('first');
-    if (todayHours >= 3) unlock('bronze');
-    if (todayHours >= 6) unlock('silver');
-    if (todayHours >= 10) unlock('gold');
-    if (todayHours >= 14) unlock('diamond');
-    if (streakData.count >= 3) unlock('streak3');
-    if (streakData.count >= 7) unlock('streak7');
-    if (streakData.count >= 14) unlock('streak14');
-    if (streakData.count >= 30) unlock('streak30');
-    if (totalHours >= 100) unlock('100hrs');
-    if (totalHours >= 500) unlock('500hrs');
-    
-    const hour = new Date(lastSession.date).getHours();
-    if (hour < 6) unlock('early_bird');
-    if (hour >= 22) unlock('night_owl');
-
-    setUnlockedTrophies(newUnlocks);
-  };
-
-  const TROPHIES = [
-    { id: 'first', icon: '🐣', title: 'The First Step', desc: 'Log your first session' },
-    { id: 'bronze', icon: '🥉', title: 'Bronze Grind', desc: '3+ hours in a day' },
-    { id: 'silver', icon: '🥈', title: 'Silver Hustle', desc: '6+ hours in a day' },
-    { id: 'gold', icon: '🥇', title: 'Gold Mastery', desc: '10+ hours in a day' },
-    { id: 'diamond', icon: '💎', title: 'Diamond Focus', desc: '14+ hours in a day' },
-    { id: 'streak3', icon: '🔥', title: 'Warming Up', desc: '3 Day Target Streak' },
-    { id: 'streak7', icon: '📅', title: 'Consistent CA', desc: '7 Day Target Streak' },
-    { id: 'streak14', icon: '🗓️', title: 'Fortnight Focus', desc: '14 Day Target Streak' },
-    { id: 'streak30', icon: '🏆', title: 'Monthly Master', desc: '30 Day Target Streak' },
-    { id: 'early_bird', icon: '🌅', title: 'Early Bird', desc: 'Log session before 6 AM' },
-    { id: 'night_owl', icon: '🦉', title: 'Night Owl', desc: 'Log session after 10 PM' },
-    { id: '100hrs', icon: '💯', title: 'Century Club', desc: '100 total hours logged' },
-    { id: '500hrs', icon: '💫', title: '500 Club', desc: '500 total hours logged' },
-    { id: 'polymath', icon: '🧠', title: 'Polymath', desc: 'Study 3 subjects in 1 day' },
-    { id: 'weekend', icon: '⚔️', title: 'Weekend Warrior', desc: 'Hit daily goal on Sunday' },
-  ];
-
-  // --- ANALYTICS ENGINE (Time-based grouping) ---
-  const getChartData = () => {
-    let data = [];
-    if (analyticsView === 'daily') {
-      // Last 7 Days
-      for(let i=6; i>=0; i--) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const dateStr = d.toLocaleDateString();
-        const hrs = sessions.filter(s => new Date(s.date).toLocaleDateString() === dateStr).reduce((sum, s) => sum + s.duration, 0) / 60;
-        data.push({ label: d.toLocaleDateString('en-US', {weekday:'short'}), value: hrs.toFixed(1) });
-      }
-    } else if (analyticsView === 'weekly') {
-      // Last 4 Weeks
-      for(let i=3; i>=0; i--) {
-        const start = new Date(); start.setDate(start.getDate() - (i*7 + 7));
-        const end = new Date(); end.setDate(end.getDate() - (i*7));
-        const hrs = sessions.filter(s => new Date(s.date) >= start && new Date(s.date) <= end).reduce((sum, s) => sum + s.duration, 0) / 60;
-        data.push({ label: `Week ${4-i}`, value: hrs.toFixed(1) });
-      }
-    } else if (analyticsView === 'monthly') {
-      // Last 6 Months
-      for(let i=5; i>=0; i--) {
-        const d = new Date(); d.setMonth(d.getMonth() - i);
-        const mStr = d.toLocaleString('default', { month: 'short' });
-        const hrs = sessions.filter(s => new Date(s.date).getMonth() === d.getMonth()).reduce((sum, s) => sum + s.duration, 0) / 60;
-        data.push({ label: mStr, value: hrs.toFixed(1) });
-      }
-    } else if (analyticsView === 'subject') {
-      SUBJECTS.forEach(sub => {
-        const hrs = sessions.filter(s => s.subject === sub).reduce((sum, s) => sum + s.duration, 0) / 60;
-        data.push({ label: sub.substring(0,5), value: hrs.toFixed(1), fullLabel: sub });
-      });
+  // Weekly Chart Data Logic
+  const getWeeklyData = () => {
+    const days = [];
+    let maxHrs = 1;
+    for(let i=6; i>=0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString();
+      const hrs = sessions.filter(s => new Date(s.date).toLocaleDateString() === dateStr).reduce((sum, s) => sum + s.duration, 0) / 60;
+      if (hrs > maxHrs) maxHrs = hrs;
+      days.push({ name: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: hrs.toFixed(1) });
     }
-    const maxVal = Math.max(...data.map(d => Number(d.value))) || 1;
-    return { data, maxVal };
+    return { days, maxHrs };
   };
-  const chart = getChartData();
+  const weeklyData = getWeeklyData();
 
-  // --- TIMER WIDGET COMPONENT ---
+  // Helper for grouping achievements
+  const achievementsByMonth = unlockedAchievements.reduce((acc, current) => {
+    if (!acc[current.month]) acc[current.month] = [];
+    acc[current.month].push(current);
+    return acc;
+  }, {});
+
   const TimerWidget = () => (
     <div className={`timer-widget ${isDND ? 'dnd-mode' : ''}`}>
+      {isDND && (
+        <div className="dnd-header">
+          <h1 className="zen-title">FULL FOCUS MODE</h1>
+          <button className="btn reset-btn-control exit-dnd-btn" onClick={toggleDND}>EXIT FULL SCREEN</button>
+        </div>
+      )}
+      
       {!isDND && (
-        <div className="clock-style-toggle">
-          <button className={clockStyle === 'minimal' ? 'active' : ''} onClick={() => setClockStyle('minimal')}>Minimal</button>
-          <button className={clockStyle === 'standard' ? 'active' : ''} onClick={() => setClockStyle('standard')}>Standard</button>
-          <button className={clockStyle === 'flip' ? 'active' : ''} onClick={() => setClockStyle('flip')}>Flip Clock</button>
+        <>
+          <div className="clock-style-toggle">
+            <button className={clockStyle === 'minimal' ? 'active' : ''} onClick={() => setClockStyle('minimal')}>Minimal</button>
+            <button className={clockStyle === 'standard' ? 'active' : ''} onClick={() => setClockStyle('standard')}>Digital</button>
+            <button className={clockStyle === 'flip' ? 'active' : ''} onClick={() => setClockStyle('flip')}>Flip</button>
+          </div>
+          <div className="pomodoro-presets">
+            <button className={`preset-btn ${pomodoroLength === 25 ? 'active' : ''}`} onClick={() => setPomodoro(25)}>25m</button>
+            <button className={`preset-btn ${pomodoroLength === 50 ? 'active' : ''}`} onClick={() => setPomodoro(50)}>50m</button>
+            <form onSubmit={handleCustomTime} className="custom-time-form">
+              <input type="number" placeholder="Mins" value={customMins} onChange={e => setCustomMins(e.target.value)} min="1" max="300" />
+              <button type="submit">Set</button>
+            </form>
+          </div>
+        </>
+      )}
+
+      {/* DYNAMIC CLOCKS */}
+      {clockStyle === 'standard' && (
+        <div className="timer-display-box">
+          <h3>{timeObj.full}</h3>
+          <p>{selectedSubject}</p>
         </div>
       )}
 
-      {/* CLOCK RENDERS */}
       {clockStyle === 'minimal' && (
-        <div className="minimal-clock">
+        <div className="minimal-clock-container">
           <svg className="progress-ring" width="240" height="240">
-            <circle className="ring-bg" stroke="#161b22" strokeWidth="8" fill="transparent" r="110" cx="120" cy="120"/>
-            <circle className="ring-fill" stroke={isActive ? "#22c55e" : "#38bdf8"} strokeWidth="8" fill="transparent" r="110" cx="120" cy="120" style={{ strokeDasharray: `${2 * Math.PI * 110}`, strokeDashoffset: `${2 * Math.PI * 110 * (1 - timeLeft / (pomodoroLength * 60))}` }}/>
+            <circle className="progress-ring__circle bg" stroke="#30363d" strokeWidth="8" fill="transparent" r="100" cx="120" cy="120"/>
+            <circle className="progress-ring__circle fg" stroke="#38bdf8" strokeWidth="8" fill="transparent" r="100" cx="120" cy="120" style={{strokeDasharray: 628, strokeDashoffset: 628 - (progressPercent / 100) * 628}} />
           </svg>
-          <div className="minimal-text">
+          <div className="minimal-time-text">
             <h2>{timeObj.full}</h2>
             <p>{selectedSubject}</p>
           </div>
         </div>
       )}
-      
-      {clockStyle === 'standard' && (<div className="timer-display-box"><h3>{timeObj.full}</h3><p>{selectedSubject}</p></div>)}
-      
+
       {clockStyle === 'flip' && (
         <div className="flip-clock-container">
-          <div className="flip-clock"><div className="flip-card"><span>{timeObj.mins}</span></div><span className="colon">:</span><div className="flip-card"><span>{timeObj.secs}</span></div></div>
+          <div className="flip-clock">
+            <div className="flip-card"><span>{timeObj.mins}</span></div><span className="colon">:</span><div className="flip-card"><span>{timeObj.secs}</span></div>
+          </div>
           <p className="flip-subject">{selectedSubject}</p>
-        </div>
-      )}
-
-      {!isDND && (
-        <div className="pomodoro-presets">
-          <button className={`preset-btn ${pomodoroLength === 25 ? 'active' : ''}`} onClick={() => setPomodoro(25)}>25m</button>
-          <button className={`preset-btn ${pomodoroLength === 50 ? 'active' : ''}`} onClick={() => setPomodoro(50)}>50m</button>
-          <form onSubmit={handleCustomTime} className="custom-time-form"><input type="number" placeholder="Mins" value={customMins} onChange={e => setCustomMins(e.target.value)} /><button type="submit">Set</button></form>
         </div>
       )}
       
@@ -267,22 +297,26 @@ export default function App() {
         <button className="btn reset-btn-control" onClick={resetTimer}>RESET</button>
       </div>
 
-      {!isDND && <button className="btn pro-btn dnd full-width" onClick={toggleDND}>🌙 Enter Fullscreen DND Mode</button>}
+      {!isDND && (
+        <div className="pro-controls">
+          <button className="btn pro-btn dnd" onClick={toggleDND}>🌙 Enter Fullscreen DND</button>
+        </div>
+      )}
     </div>
   );
 
   return (
     <div className="app-container">
-      {/* 🛑 FIXED DND OVERLAY WITH EXIT BUTTON */}
-      {isDND && (
-        <div className="dnd-overlay">
-          <button className="exit-dnd-btn" onClick={toggleDND}>✖ EXIT DND FULLSCREEN</button>
-          <TimerWidget />
-        </div>
-      )}
+      {isDND && <div className="dnd-overlay"><TimerWidget /></div>}
 
       <header className="header">
-        <div className="header-left"><div className="logo">CA</div><div className="user-greeting"><h1>Sathi</h1><p>DEVELOPED BY NIKET TALWAR</p></div></div>
+        <div className="header-left">
+          <div className="logo">CA</div>
+          <div className="user-greeting">
+            <h1>Sathi</h1>
+            <p>DEVELOPED BY NIKET TALWAR</p>
+          </div>
+        </div>
         <nav className="header-center">
           {['Dashboard', 'Achievements', 'Analytics', 'Mentor', 'Materials', 'Settings'].map(tab => (
             <button key={tab} className={`nav-link ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
@@ -296,15 +330,21 @@ export default function App() {
           <div className="stats-dashboard">
             <StatsCard icon="📅" title="EXAM COUNTDOWN" value={daysRemaining} subtext="days remaining" type="red" />
             <StatsCard icon="⏱️" title="TODAY'S STUDY" value={`${todayHours} / ${dailyGoal}h`} subtext={isBehind ? "Behind schedule" : "Target Hit!"} type={isBehind ? "red" : "green"} />
-            <div className="stats-card streak-card green"><div className="card-header"><span className="card-icon">🔥</span><h3 className="card-title">TRUE STREAK</h3></div><p className="card-value">{streakData.count}</p><p className="card-subtext green">Days hitting target + login</p></div>
-            <StatsCard icon="📈" title="TOTAL HOURS" value={totalHours} subtext="all time logged" />
+            <div className="stats-card streak-card green">
+              <div className="card-header"><span className="card-icon">🔥</span><h3 className="card-title">TRUE STREAK</h3></div>
+              <p className="card-value">{streakData.count}</p>
+              <p className="card-subtext green">Days hitting target + login</p>
+            </div>
+            <StatsCard icon="📈" title="TOTAL HOURS" value={totalHoursLogged} subtext="all time logged" />
           </div>
 
           <div className="main-dashboard-grid">
             <div className="quick-actions panel">
               <h2>Focus Engine</h2>
               <div className="quick-subject-selector">
-                {SUBJECTS.map(sub => (<button key={sub} className={`sub-btn ${selectedSubject === sub ? 'active' : ''}`} onClick={() => setSelectedSubject(sub)}>{sub}</button>))}
+                {SUBJECTS.map(sub => (
+                  <button key={sub} className={`sub-btn ${selectedSubject === sub ? 'active' : ''}`} onClick={() => setSelectedSubject(sub)}>{sub}</button>
+                ))}
               </div>
               {!isDND && <TimerWidget />}
             </div>
@@ -312,17 +352,33 @@ export default function App() {
             <div className="dashboard-right-col">
               <div className="today-targets panel mini-panel">
                 <h2>Today's Targets</h2>
-                <form onSubmit={handleAddTask} className="task-form small"><input type="text" placeholder="Add target..." value={newTask} onChange={(e) => setNewTask(e.target.value)} className="task-input"/><button type="submit" className="btn start focus-btn mini">+</button></form>
+                <form onSubmit={handleAddTask} className="task-form small">
+                  <input type="text" placeholder="Add target..." value={newTask} onChange={(e) => setNewTask(e.target.value)} className="task-input"/>
+                  <button type="submit" className="btn start focus-btn mini">+</button>
+                </form>
                 <ul className="task-list scrollable-mini">
-                  {todos.filter(t => t.date === new Date().toLocaleDateString()).map(t => (
-                    <li key={t.id} className={`task-item ${t.done ? 'completed' : ''}`}><div className="task-left" onClick={() => toggleTodo(t.id)}><div className={`checkbox ${t.done ? 'checked' : ''}`}></div> <span>{t.text}</span></div><button className="del-btn" onClick={() => deleteTodo(t.id)}>×</button></li>
+                  {todayTodos.length === 0 ? <p className="empty-state">No targets set.</p> : 
+                    todayTodos.map(t => (
+                    <li key={t.id} className={`task-item ${t.done ? 'completed' : ''}`}>
+                      <div className="task-left" onClick={() => toggleTodo(t.id)}>
+                        <div className={`checkbox ${t.done ? 'checked' : ''}`}></div> <span>{t.text}</span>
+                      </div>
+                      <button className="del-btn" onClick={() => deleteTodo(t.id)}>×</button>
+                    </li>
                   ))}
                 </ul>
               </div>
+
               <div className="today-sessions panel mini-panel">
                 <h2>Today's Logs</h2>
                 <ul className="log-list scrollable-mini">
-                  {todaySessions.map(s => (<li key={s.id} className="log-item"><div><strong>{s.subject}</strong> <span className="log-duration">({s.duration}m)</span></div><div className="log-date">{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></li>))}
+                  {todaySessions.length === 0 ? <p className="empty-state">No sessions yet.</p> :
+                    todaySessions.map((s) => (
+                    <li key={s.id} className="log-item">
+                      <div><strong>{s.subject}</strong> <span className="log-duration">({s.duration}m)</span></div>
+                      <div className="log-date">{new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -330,45 +386,78 @@ export default function App() {
         </div>
       )}
 
-      {/* MEGA ACHIEVEMENTS */}
+      {/* ACHIEVEMENTS */}
       {activeTab === 'Achievements' && (
         <div className="tab-content fade-in panel">
-          <h2>Trophy Cabinet & History</h2>
+          <h2>Trophy Cabinet</h2>
           <div className="trophy-grid">
-            {TROPHIES.map(t => {
-              const unlockedMonth = unlockedTrophies[t.id];
+            {ACHIEVEMENTS_DB.map(ach => {
+              const isUnlocked = unlockedAchievements.some(u => u.id === ach.id);
               return (
-                <div key={t.id} className={`trophy-card ${unlockedMonth ? 'unlocked gold' : 'locked'}`}>
-                  <div className="trophy-icon">{t.icon}</div>
-                  <h3>{t.title}</h3><p>{t.desc}</p>
-                  <span className="status">{unlockedMonth ? `Unlocked: ${unlockedMonth}` : 'LOCKED'}</span>
+                <div key={ach.id} className={`trophy-card ${isUnlocked ? 'unlocked gold' : 'locked'}`}>
+                  <div className="trophy-icon">{ach.icon}</div>
+                  <h3>{ach.title}</h3>
+                  <p>{ach.desc}</p>
+                  <span className="status">{isUnlocked ? 'UNLOCKED' : 'LOCKED'}</span>
                 </div>
               );
             })}
           </div>
+
+          <h2 style={{marginTop: '3rem', borderTop: '1px solid #30363d', paddingTop: '2rem'}}>Monthly History</h2>
+          {Object.keys(achievementsByMonth).length === 0 ? (
+            <p className="empty-state" style={{textAlign: 'left'}}>No achievements unlocked yet. Keep grinding!</p>
+          ) : (
+            <div className="history-timeline">
+              {Object.keys(achievementsByMonth).reverse().map(month => (
+                <div key={month} className="history-month">
+                  <h3 className="month-title">{month}</h3>
+                  <ul className="history-list">
+                    {achievementsByMonth[month].map(unlocked => {
+                      const details = ACHIEVEMENTS_DB.find(a => a.id === unlocked.id);
+                      return (
+                        <li key={unlocked.id}>
+                          <span className="history-icon">{details?.icon}</span>
+                          <span className="history-text"><strong>{details?.title}</strong> - Unlocked on {unlocked.date}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ADVANCED ANALYTICS */}
+      {/* ANALYTICS */}
       {activeTab === 'Analytics' && (
         <div className="tab-content fade-in panel">
-          <div className="header-left" style={{justifyContent: 'space-between', marginBottom: '20px'}}>
-            <h2>Performance Analytics</h2>
-            <div className="clock-style-toggle">
-              {['daily', 'weekly', 'monthly', 'subject'].map(v => (
-                <button key={v} className={analyticsView === v ? 'active' : ''} onClick={() => setAnalyticsView(v)}>{v.toUpperCase()}</button>
-              ))}
-            </div>
-          </div>
+          <h2>Performance Analytics</h2>
           
-          <div className="chart-wrapper">
-            {chart.data.map((d, i) => {
-              const heightPct = (Number(d.value) / chart.maxVal) * 100;
+          <h3 className="section-title">Weekly Trend (Last 7 Days)</h3>
+          <div className="bar-chart-container">
+            {weeklyData.days.map((day, i) => {
+              const heightPct = (day.hours / (weeklyData.maxHrs || 1)) * 100;
               return (
-                <div key={i} className="chart-bar-container">
-                  <div className="chart-val">{d.value}h</div>
-                  <div className="chart-bar"><div className="chart-fill" style={{ height: `${heightPct}%`, backgroundColor: `var(--color-${i%6})`}}></div></div>
-                  <div className="chart-label" title={d.fullLabel || d.label}>{d.label}</div>
+                <div key={i} className="bar-col">
+                  <span className="bar-val">{day.hours}h</span>
+                  <div className="bar-fill" style={{ height: `${heightPct}%` }}></div>
+                  <span className="bar-label">{day.name}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <h3 className="section-title" style={{marginTop: '3rem'}}>All-Time Subject Distribution</h3>
+          <div className="analytics-container">
+            {SUBJECTS.map((sub, i) => {
+              const hours = (sessions.filter(s => s.subject === sub).reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
+              const maxHours = Math.max(...SUBJECTS.map(s => sessions.filter(x => x.subject === s).reduce((sum, x) => sum + x.duration, 0) / 60)) || 1;
+              return (
+                <div key={sub} className="analytics-row">
+                  <div className="analytics-label">{sub} <span>({hours}h)</span></div>
+                  <div className="analytics-bar-bg"><div className="analytics-bar-fill" style={{ width: `${(hours/maxHours)*100}%`, backgroundColor: `var(--color-${i})`}}></div></div>
                 </div>
               )
             })}
@@ -380,8 +469,10 @@ export default function App() {
       {activeTab === 'Mentor' && (
         <div className="tab-content fade-in panel mentor-container">
           <h2>🧠 CA Sathi AI Mentor</h2>
-          {!apiKey && <div className="api-warning">⚠️ Paste your Gemini API Key in Settings to chat.</div>}
-          <div className="chat-window">{chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}</div>
+          {!apiKey && <div className="api-warning">⚠️ Paste your Gemini API Key in Settings to chat with the AI.</div>}
+          <div className="chat-window">
+            {chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}
+          </div>
           <div className="chat-input-row">
             <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Ask a doubt..." className="task-input"/>
             <button className="btn start focus-btn" onClick={handleSendMessage}>Send</button>
@@ -392,8 +483,10 @@ export default function App() {
       {/* MATERIALS */}
       {activeTab === 'Materials' && (
         <div className="tab-content fade-in panel">
-          <h3 className="section-title">Faculty Drive Notes</h3><div className="subject-progress-list">{SUBJECTS.map(sub => (<div key={sub} className="subject-card"><div className="subject-info"><h3>{sub}</h3><a href={NOTES_LINKS[sub]} target="_blank" rel="noreferrer" className="notes-link">Access Notes</a></div></div>))}</div>
-          <h3 className="section-title" style={{marginTop: '2rem'}}>Previous Year RTP / MTP</h3><div className="subject-progress-list">{SUBJECTS.map(sub => (<div key={`rtp-${sub}`} className="subject-card rtp-card"><div className="subject-info"><h3>{sub} RTPs</h3><a href={RTP_LINKS[sub]} target="_blank" rel="noreferrer" className="notes-link rtp-link">Access RTP</a></div></div>))}</div>
+          <h3 className="section-title">Faculty Drive Notes</h3>
+          <div className="subject-progress-list">{SUBJECTS.map(sub => (<div key={sub} className="subject-card"><div className="subject-info"><h3>{sub}</h3><a href={NOTES_LINKS[sub]} target="_blank" rel="noreferrer" className="notes-link">Access Notes</a></div></div>))}</div>
+          <h3 className="section-title" style={{marginTop: '2rem'}}>Previous Year RTP / MTP</h3>
+          <div className="subject-progress-list">{SUBJECTS.map(sub => (<div key={`rtp-${sub}`} className="subject-card rtp-card"><div className="subject-info"><h3>{sub} RTPs</h3><a href={RTP_LINKS[sub]} target="_blank" rel="noreferrer" className="notes-link rtp-link">Access RTP</a></div></div>))}</div>
         </div>
       )}
 
@@ -401,8 +494,7 @@ export default function App() {
       {activeTab === 'Settings' && (
         <div className="tab-content fade-in panel">
           <h2>App Settings</h2>
-          <div className="setting-input-group"><label>Gemini API Key:</label><input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /></div>
-          <div className="setting-input-group"><label>AI Model (Change if error):</label><input type="text" value={aiModel} onChange={(e) => setAiModel(e.target.value)} /><p className="hint">Defaults to <code>gemini-1.5-pro-latest</code>. Try <code>gemini-1.5-flash</code> if it fails.</p></div>
+          <div className="setting-input-group"><label>Gemini API Key:</label><input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /><p className="hint">Required for AI Mentor. Get it free from Google AI Studio.</p></div>
           <div className="setting-input-group"><label>Exam Date:</label><input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} /></div>
           <div className="setting-input-group"><label>Daily Goal (Hours):</label><input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(e.target.value)} /></div>
           <button className="btn reset-btn-control" onClick={() => { if(window.confirm('Clear all data?')) { localStorage.clear(); window.location.reload(); }}}>Hard Reset App</button>
