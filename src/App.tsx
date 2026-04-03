@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 
-// 📚 FACULTY NOTES LINKS
+// 📚 FACULTY & RTP LINKS
 const NOTES_LINKS = {
   'Financial Reporting': 'https://drive.google.com/drive/folders/1ANLP_7cw7AXKkjWw4Lxp4mw7EuqcoosjuO3aR5SdqVo2oHMaVr5MiozHC662fDdpWfjsB0aP',
   'AFM': 'https://drive.google.com/drive/folders/14Ab9fZoPCcpnlDGc2bU-qTjxl6_PpdsPE_G0ndASdsFrRpPv9M4tYjRN3yPgFouCI7kQtDMq',
@@ -10,17 +10,17 @@ const NOTES_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1fiRYgdDj8Zkl9s11Sguw03okzS18SMnJ95DIqOnaEZI0LoTLe8BR4x2HWPHmXMQ2iINWdu9M',
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
-
-// 📑 RTP & MTP COMPILATION LINKS
-const RTP_LINKS = {
-  'Financial Reporting': 'https://drive.google.com/drive/folders/1QuwWAVVp7I_WDHpuk9Jhrlruthpccq-t?usp=drive_link',
-  'AFM': 'https://drive.google.com/drive/folders/1wrhq4le7R67_44puqXpfm_JNNLL3M4Th?usp=drive_link',
-  'AUDIT': 'https://drive.google.com/drive/folders/1RviDhUZj1AvHRAU4Im5W0wPu1dtWaahd?usp=drive_link',
-  'Direct Tax': 'https://drive.google.com/drive/folders/1HyQJdCFfRci__mRrHC6h-1nLR-JMvxKG?usp=drive_link',
-  'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
-  'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
-};
+const RTP_LINKS = { ...NOTES_LINKS }; 
 const SUBJECTS = Object.keys(NOTES_LINKS);
+
+// 🎯 NEW: TARGET CATEGORIES
+const TARGET_CATEGORIES = [
+  'Concept Revision',
+  'Question Bank Solving',
+  'Mock Test Paper',
+  'YT Revision watch',
+  'Class Watching'
+];
 
 const StatsCard = ({ icon, title, value, subtext, type }) => (
   <div className={`stats-card ${type || ''}`}>
@@ -30,7 +30,6 @@ const StatsCard = ({ icon, title, value, subtext, type }) => (
   </div>
 );
 
-// 🏆 THE ACHIEVEMENT ENGINE
 const ACHIEVEMENTS_DB = [
   { id: 'daily_3', icon: '🥉', title: 'Bronze Grind', desc: 'Study 3+ hours in a day', target: 3, type: 'daily' },
   { id: 'daily_6', icon: '🥈', title: 'Silver Hustle', desc: 'Study 6+ hours in a day', target: 6, type: 'daily' },
@@ -65,10 +64,14 @@ export default function App() {
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [clockStyle, setClockStyle] = useState('minimal'); 
   
+  // New Structured Target State
+  const [targetSub, setTargetSub] = useState(SUBJECTS[0]);
+  const [targetCat, setTargetCat] = useState(TARGET_CATEGORIES[0]);
+  const [targetTopic, setTargetTopic] = useState('');
+
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [isDND, setIsDND] = useState(false);
-  const [newTask, setNewTask] = useState('');
 
   const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages')) || [{ sender: 'bot', text: 'Hey Niket! CA Sathi is online. How can I help you grind today?' }]);
   const [chatInput, setChatInput] = useState('');
@@ -188,17 +191,28 @@ export default function App() {
     }
   };
 
-  const handleAddTask = (e) => {
+  // 🎯 NEW STRUCTURED TARGET HANDLER
+  const handleAddStructuredTask = (e) => {
     e.preventDefault();
-    if (!newTask.trim()) return;
-    setTodos([{ id: Date.now(), text: newTask, done: false, date: new Date().toLocaleDateString() }, ...todos]);
-    setNewTask('');
+    if (!targetTopic.trim()) return;
+    
+    const newTask = {
+      id: Date.now(),
+      subject: targetSub,
+      category: targetCat,
+      topic: targetTopic,
+      done: false,
+      date: new Date().toLocaleDateString()
+    };
+    
+    setTodos([newTask, ...todos]);
+    setTargetTopic(''); // Clear input after adding
   };
+
   const toggleTodo = (id) => setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // 🚀 THE ULTIMATE AUTO-ROUTING MENTOR ENGINE (Tests 3.1 -> 3.0 -> 2.5 -> 2.0 -> 1.5)
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -212,11 +226,9 @@ export default function App() {
 
     const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
 
-    // Helper to fetch against a specific model string
     const tryModel = async (modelName) => {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       });
       const data = await response.json();
@@ -224,15 +236,7 @@ export default function App() {
       return data.candidates[0].content.parts[0].text;
     };
 
-    // The Fallback Chain
-    const modelsToTry = [
-      'gemini-3.1-flash', 
-      'gemini-3.0-flash', 
-      'gemini-2.5-flash', 
-      'gemini-2.0-flash', 
-      'gemini-1.5-flash'
-    ];
-
+    const modelsToTry = ['gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
     let success = false;
     let lastError = '';
 
@@ -240,29 +244,18 @@ export default function App() {
       try {
         const reply = await tryModel(model);
         setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
-        success = true;
-        console.log(`Successfully connected using model: ${model}`);
-        break; // Exit loop if successful
+        success = true; break;
       } catch (err) {
-        console.warn(`Model ${model} failed or is unauthorized. Trying next...`);
         lastError = err.message;
       }
     }
-
-    if (!success) {
-      setChatMessages([...newMsgs, { 
-        sender: 'bot', 
-        text: `API Error: Unable to connect to any Gemini models. Last error: ${lastError}. Make sure your key is fresh from aistudio.google.com!` 
-      }]);
-    }
+    if (!success) setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: Unable to connect. Last error: ${lastError}. Ensure key is fresh from aistudio.google.com!` }]);
   };
 
   const getWeeklyData = () => {
-    const days = [];
-    let maxHrs = 1;
+    const days = []; let maxHrs = 1;
     for(let i=6; i>=0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString();
+      const d = new Date(); d.setDate(d.getDate() - i); const dateStr = d.toLocaleDateString();
       const hrs = sessions.filter(s => new Date(s.date).toLocaleDateString() === dateStr).reduce((sum, s) => sum + s.duration, 0) / 60;
       if (hrs > maxHrs) maxHrs = hrs;
       days.push({ name: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: hrs.toFixed(1) });
@@ -270,11 +263,8 @@ export default function App() {
     return { days, maxHrs };
   };
   const weeklyData = getWeeklyData();
-
   const achievementsByMonth = unlockedAchievements.reduce((acc, current) => {
-    if (!acc[current.month]) acc[current.month] = [];
-    acc[current.month].push(current);
-    return acc;
+    if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
 
   const TimerWidget = () => (
@@ -347,6 +337,34 @@ export default function App() {
     </div>
   );
 
+  // 🎯 Reusable Component for Rendering the Target List
+  const TargetListRenderer = ({ tasks }) => (
+    <ul className="task-list scrollable-mini">
+      {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
+        tasks.map(t => (
+        <li key={t.id} className={`task-item ${t.done ? 'completed' : ''}`}>
+          <div className="task-left" onClick={() => toggleTodo(t.id)}>
+            <div className={`checkbox ${t.done ? 'checked' : ''}`}></div> 
+            <div className="task-content-wrapper">
+              {t.subject && t.category ? (
+                <>
+                  <div className="task-badges">
+                    <span className="task-badge badge-sub">{t.subject}</span>
+                    <span className="task-badge badge-cat">{t.category}</span>
+                  </div>
+                  <span className="task-text-main">{t.topic}</span>
+                </>
+              ) : (
+                <span className="task-text-main">{t.text}</span> // Fallback for old simple tasks
+              )}
+            </div>
+          </div>
+          <button className="del-btn" onClick={() => deleteTodo(t.id)}>×</button>
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className="app-container">
       <div style={{ position: 'fixed', top: '-1000px', left: '-1000px', opacity: 0, pointerEvents: 'none' }}>
@@ -365,7 +383,8 @@ export default function App() {
           </div>
         </div>
         <nav className="header-center">
-          {['Dashboard', 'Achievements', 'Analytics', 'Mentor', 'Materials', 'Settings'].map(tab => (
+          {/* ✨ Added 'Targets' explicitly to the Nav menu */}
+          {['Dashboard', 'Targets', 'Achievements', 'Analytics', 'Mentor', 'Materials', 'Settings'].map(tab => (
             <button key={tab} className={`nav-link ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
           ))}
         </nav>
@@ -398,22 +417,11 @@ export default function App() {
 
             <div className="dashboard-right-col">
               <div className="today-targets panel mini-panel">
-                <h2>Today's Targets</h2>
-                <form onSubmit={handleAddTask} className="task-form small">
-                  <input type="text" placeholder="Add target..." value={newTask} onChange={(e) => setNewTask(e.target.value)} className="task-input"/>
-                  <button type="submit" className="btn start focus-btn mini">+</button>
-                </form>
-                <ul className="task-list scrollable-mini">
-                  {todayTodos.length === 0 ? <p className="empty-state">No targets set.</p> : 
-                    todayTodos.map(t => (
-                    <li key={t.id} className={`task-item ${t.done ? 'completed' : ''}`}>
-                      <div className="task-left" onClick={() => toggleTodo(t.id)}>
-                        <div className={`checkbox ${t.done ? 'checked' : ''}`}></div> <span>{t.text}</span>
-                      </div>
-                      <button className="del-btn" onClick={() => deleteTodo(t.id)}>×</button>
-                    </li>
-                  ))}
-                </ul>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <h2>Today's Targets</h2>
+                  <button className="btn reset-btn-control" style={{width:'auto', padding:'5px 15px', fontSize:'0.8rem'}} onClick={() => setActiveTab('Targets')}>Add New +</button>
+                </div>
+                <TargetListRenderer tasks={todayTodos} />
               </div>
 
               <div className="today-sessions panel mini-panel">
@@ -429,6 +437,34 @@ export default function App() {
                 </ul>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎯 NEW TAB: TARGETS PLANNER */}
+      {activeTab === 'Targets' && (
+        <div className="tab-content fade-in panel">
+          <h2>Daily Target Planner</h2>
+          <p className="empty-state" style={{textAlign: 'left', marginBottom: '20px'}}>Structure your day by assigning specific chapters to exact study methods.</p>
+          
+          <form onSubmit={handleAddStructuredTask} className="structured-task-form">
+            <div className="form-row">
+              <select value={targetSub} onChange={e => setTargetSub(e.target.value)} className="task-input select-input">
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={targetCat} onChange={e => setTargetCat(e.target.value)} className="task-input select-input">
+                {TARGET_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-row">
+              <input type="text" placeholder="Enter Chapter or Topic Name (e.g. AS-19 Leases, Block Assessments)..." value={targetTopic} onChange={(e) => setTargetTopic(e.target.value)} className="task-input" />
+              <button type="submit" className="btn start focus-btn" style={{width: '200px'}}>Add Target</button>
+            </div>
+          </form>
+
+          <h3 className="section-title" style={{marginTop: '30px'}}>Your Master To-Do List</h3>
+          <div className="full-target-list-wrapper">
+             <TargetListRenderer tasks={todayTodos} />
           </div>
         </div>
       )}
@@ -450,7 +486,6 @@ export default function App() {
               );
             })}
           </div>
-
           <h2 style={{marginTop: '3rem', borderTop: '1px solid #30363d', paddingTop: '2rem'}}>Monthly History</h2>
           {Object.keys(achievementsByMonth).length === 0 ? (
             <p className="empty-state" style={{textAlign: 'left'}}>No achievements unlocked yet. Keep grinding!</p>
@@ -462,12 +497,7 @@ export default function App() {
                   <ul className="history-list">
                     {achievementsByMonth[month].map(unlocked => {
                       const details = ACHIEVEMENTS_DB.find(a => a.id === unlocked.id);
-                      return (
-                        <li key={unlocked.id}>
-                          <span className="history-icon">{details?.icon}</span>
-                          <span className="history-text"><strong>{details?.title}</strong> - Unlocked on {unlocked.date}</span>
-                        </li>
-                      );
+                      return (<li key={unlocked.id}><span className="history-icon">{details?.icon}</span><span className="history-text"><strong>{details?.title}</strong> - Unlocked on {unlocked.date}</span></li>);
                     })}
                   </ul>
                 </div>
@@ -481,31 +511,22 @@ export default function App() {
       {activeTab === 'Analytics' && (
         <div className="tab-content fade-in panel">
           <h2>Performance Analytics</h2>
-          
           <h3 className="section-title">Weekly Trend (Last 7 Days)</h3>
           <div className="bar-chart-container">
             {weeklyData.days.map((day, i) => {
               const heightPct = (day.hours / (weeklyData.maxHrs || 1)) * 100;
               return (
-                <div key={i} className="bar-col">
-                  <span className="bar-val">{day.hours}h</span>
-                  <div className="bar-fill" style={{ height: `${heightPct}%` }}></div>
-                  <span className="bar-label">{day.name}</span>
-                </div>
+                <div key={i} className="bar-col"><span className="bar-val">{day.hours}h</span><div className="bar-fill" style={{ height: `${heightPct}%` }}></div><span className="bar-label">{day.name}</span></div>
               );
             })}
           </div>
-
           <h3 className="section-title" style={{marginTop: '3rem'}}>All-Time Subject Distribution</h3>
           <div className="analytics-container">
             {SUBJECTS.map((sub, i) => {
               const hours = (sessions.filter(s => s.subject === sub).reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
               const maxHours = Math.max(...SUBJECTS.map(s => sessions.filter(x => x.subject === s).reduce((sum, x) => sum + x.duration, 0) / 60)) || 1;
               return (
-                <div key={sub} className="analytics-row">
-                  <div className="analytics-label">{sub} <span>({hours}h)</span></div>
-                  <div className="analytics-bar-bg"><div className="analytics-bar-fill" style={{ width: `${(hours/maxHours)*100}%`, backgroundColor: `var(--color-${i})`}}></div></div>
-                </div>
+                <div key={sub} className="analytics-row"><div className="analytics-label">{sub} <span>({hours}h)</span></div><div className="analytics-bar-bg"><div className="analytics-bar-fill" style={{ width: `${(hours/maxHours)*100}%`, backgroundColor: `var(--color-${i})`}}></div></div></div>
               )
             })}
           </div>
@@ -517,9 +538,7 @@ export default function App() {
         <div className="tab-content fade-in panel mentor-container">
           <h2>🧠 CA Sathi AI Mentor</h2>
           {!apiKey && <div className="api-warning">⚠️ Paste your Gemini API Key in Settings to chat with the AI.</div>}
-          <div className="chat-window">
-            {chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}
-          </div>
+          <div className="chat-window">{chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}</div>
           <div className="chat-input-row">
             <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Ask a doubt..." className="task-input"/>
             <button className="btn start focus-btn" onClick={handleSendMessage}>Send</button>

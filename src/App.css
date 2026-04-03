@@ -159,3 +159,90 @@ body { background-color: #0d1117; color: #f0f6fc; font-family: 'Inter', system-u
 .setting-input-group label { display: block; margin-bottom: 0.5rem; color: #c9d1d9; font-weight: 500; }
 .setting-input-group input { width: 100%; padding: 0.75rem; background-color: #0d1117; border: 1px solid #30363d; color: #f0f6fc; border-radius: 6px; font-family: inherit; font-size: 1rem; }
 .hint { font-size: 0.8rem; color: #8b949e; margin-top: 5px; }
+/* =========================================
+   STRUCTURED TARGETS (NEW)
+   ========================================= */
+   .structured-task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #0d1117;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .select-input {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23c9d1d9%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px top 50%;
+    background-size: 12px auto;
+  }
+  
+  .task-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .task-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .task-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .badge-sub {
+    background-color: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  
+  .badge-cat {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  
+  .task-text-main {
+    font-size: 1rem;
+    color: #f0f6fc;
+  }
+  
+  .task-item.completed .task-text-main {
+    text-decoration: line-through;
+    color: #8b949e;
+  }
+  
+  .full-target-list-wrapper {
+    background-color: #0d1117;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    padding: 10px;
+  }
+  
+  /* Make sure mobile stacking works gracefully */
+  @media (max-width: 600px) {
+    .form-row {
+      flex-direction: column;
+    }
+    .structured-task-form .btn {
+      width: 100% !important;
+    }
+  }
