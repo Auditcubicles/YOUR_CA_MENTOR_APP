@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 
-// 📚 FACULTY & RTP LINKS
+// 📚 FACULTY NOTES LINKS
 const NOTES_LINKS = {
   'Financial Reporting': 'https://drive.google.com/drive/folders/1ANLP_7cw7AXKkjWw4Lxp4mw7EuqcoosjuO3aR5SdqVo2oHMaVr5MiozHC662fDdpWfjsB0aP',
   'AFM': 'https://drive.google.com/drive/folders/14Ab9fZoPCcpnlDGc2bU-qTjxl6_PpdsPE_G0ndASdsFrRpPv9M4tYjRN3yPgFouCI7kQtDMq',
@@ -10,7 +10,16 @@ const NOTES_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1fiRYgdDj8Zkl9s11Sguw03okzS18SMnJ95DIqOnaEZI0LoTLe8BR4x2HWPHmXMQ2iINWdu9M',
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
-const RTP_LINKS = { ...NOTES_LINKS }; 
+
+// 📑 RTP & MTP COMPILATION LINKS
+const RTP_LINKS = {
+  'Financial Reporting': 'https://drive.google.com/drive/folders/1QuwWAVVp7I_WDHpuk9Jhrlruthpccq-t?usp=drive_link',
+  'AFM': 'https://drive.google.com/drive/folders/1wrhq4le7R67_44puqXpfm_JNNLL3M4Th?usp=drive_link',
+  'AUDIT': 'https://drive.google.com/drive/folders/1RviDhUZj1AvHRAU4Im5W0wPu1dtWaahd?usp=drive_link',
+  'Direct Tax': 'https://drive.google.com/drive/folders/1HyQJdCFfRci__mRrHC6h-1nLR-JMvxKG?usp=drive_link',
+  'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
+  'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
+};
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const StatsCard = ({ icon, title, value, subtext, type }) => (
@@ -21,6 +30,7 @@ const StatsCard = ({ icon, title, value, subtext, type }) => (
   </div>
 );
 
+// 🏆 THE ACHIEVEMENT ENGINE
 const ACHIEVEMENTS_DB = [
   { id: 'daily_3', icon: '🥉', title: 'Bronze Grind', desc: 'Study 3+ hours in a day', target: 3, type: 'daily' },
   { id: 'daily_6', icon: '🥈', title: 'Silver Hustle', desc: 'Study 6+ hours in a day', target: 6, type: 'daily' },
@@ -55,7 +65,6 @@ export default function App() {
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [clockStyle, setClockStyle] = useState('minimal'); 
   
-  // 🎥 REFS FOR LIVE PIP
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [isDND, setIsDND] = useState(false);
@@ -65,7 +74,6 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
 
-  // Persistence
   useEffect(() => localStorage.setItem('sessions', JSON.stringify(sessions)), [sessions]);
   useEffect(() => localStorage.setItem('todos', JSON.stringify(todos)), [todos]);
   useEffect(() => localStorage.setItem('dailyGoal', dailyGoal), [dailyGoal]);
@@ -75,7 +83,6 @@ export default function App() {
   useEffect(() => localStorage.setItem('geminiApiKey', apiKey), [apiKey]);
   useEffect(() => localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements)), [unlockedAchievements]);
 
-  // Math & Stats
   const todayStr = new Date().toLocaleDateString();
   const todaySessions = sessions.filter(s => new Date(s.date).toLocaleDateString() === todayStr);
   const todayHours = (todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
@@ -84,7 +91,6 @@ export default function App() {
   const daysRemaining = Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
   const uniqueSubjectsToday = new Set(todaySessions.map(s => s.subject)).size;
 
-  // Evaluate Achievements
   useEffect(() => {
     let newUnlocks = [...unlockedAchievements];
     let changed = false;
@@ -109,7 +115,6 @@ export default function App() {
     if (changed) setUnlockedAchievements(newUnlocks);
   }, [sessions, todayHours, totalHoursLogged, streakData.count, uniqueSubjectsToday]);
 
-  // Streak Logic
   useEffect(() => {
     const today = new Date().toLocaleDateString();
     let currentData = { ...streakData };
@@ -125,7 +130,6 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
-  // Timer Logic
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -159,50 +163,31 @@ export default function App() {
   const timeObj = formatTime(timeLeft);
   const progressPercent = ((pomodoroLength * 60 - timeLeft) / (pomodoroLength * 60)) * 100;
 
-  // 🚀 THE FIXED PIP ENGINE
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    
-    // Draw Dark Background
-    ctx.fillStyle = '#0d1117';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw Timer
-    ctx.fillStyle = '#f0f6fc';
-    ctx.font = 'bold 120px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f0f6fc'; ctx.font = 'bold 120px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(timeObj.full, canvas.width / 2, canvas.height / 2 - 20);
-    
-    // Draw Subject
-    ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 30px Inter, sans-serif';
-    ctx.fillText(selectedSubject.toUpperCase(), canvas.width / 2, canvas.height / 2 + 70);
-
-    // Draw Status
-    ctx.fillStyle = isActive ? '#22c55e' : '#ef4444';
-    ctx.font = '20px Inter, sans-serif';
+    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 30px Inter, sans-serif'; ctx.fillText(selectedSubject.toUpperCase(), canvas.width / 2, canvas.height / 2 + 70);
+    ctx.fillStyle = isActive ? '#22c55e' : '#ef4444'; ctx.font = '20px Inter, sans-serif';
     ctx.fillText(isActive ? '● FOCUSING' : '⏸ PAUSED', canvas.width / 2, canvas.height / 2 + 110);
   }, [timeLeft, selectedSubject, isActive]);
 
   const toggleNativePIP = async () => {
     try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else {
         const video = videoRef.current;
         video.srcObject = canvasRef.current.captureStream(15); 
-        await video.play();
-        await video.requestPictureInPicture();
+        await video.play(); await video.requestPictureInPicture();
       }
     } catch (err) {
       alert("PIP Error: Ensure you click the button directly. Browser error: " + err.message);
     }
   };
 
-  // To-Dos
   const handleAddTask = (e) => {
     e.preventDefault();
     if (!newTask.trim()) return;
@@ -213,7 +198,7 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // 🚀 THE FIXED AI MENTOR (Locked to gemini-1.5-flash)
+  // 🚀 THE ULTIMATE AUTO-ROUTING MENTOR ENGINE (Tests 3.1 -> 3.0 -> 2.5 -> 2.0 -> 1.5)
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -225,22 +210,50 @@ export default function App() {
       return;
     }
 
-    try {
-      // STRICTLY using 1.5-flash. NO FALLBACKS. This is the most stable endpoint.
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
+
+    // Helper to fetch against a specific model string
+    const tryModel = async (modelName) => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          contents: [{ parts: [{ text: `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}` }] }] 
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       });
-      
       const data = await response.json();
-      
-      if(data.error) throw new Error(data.error.message);
-      setChatMessages([...newMsgs, { sender: 'bot', text: data.candidates[0].content.parts[0].text }]);
-    } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure your key is valid and has permissions.` }]);
+      if (data.error) throw new Error(data.error.message);
+      return data.candidates[0].content.parts[0].text;
+    };
+
+    // The Fallback Chain
+    const modelsToTry = [
+      'gemini-3.1-flash', 
+      'gemini-3.0-flash', 
+      'gemini-2.5-flash', 
+      'gemini-2.0-flash', 
+      'gemini-1.5-flash'
+    ];
+
+    let success = false;
+    let lastError = '';
+
+    for (const model of modelsToTry) {
+      try {
+        const reply = await tryModel(model);
+        setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+        success = true;
+        console.log(`Successfully connected using model: ${model}`);
+        break; // Exit loop if successful
+      } catch (err) {
+        console.warn(`Model ${model} failed or is unauthorized. Trying next...`);
+        lastError = err.message;
+      }
+    }
+
+    if (!success) {
+      setChatMessages([...newMsgs, { 
+        sender: 'bot', 
+        text: `API Error: Unable to connect to any Gemini models. Last error: ${lastError}. Make sure your key is fresh from aistudio.google.com!` 
+      }]);
     }
   };
 
@@ -291,7 +304,6 @@ export default function App() {
         </>
       )}
 
-      {/* DYNAMIC CLOCKS */}
       {clockStyle === 'standard' && (
         <div className="timer-display-box">
           <h3>{timeObj.full}</h3>
@@ -326,7 +338,6 @@ export default function App() {
         <button className="btn reset-btn-control" onClick={resetTimer}>RESET</button>
       </div>
 
-      {/* 🚀 THE RESTORED PIP & DND BUTTONS */}
       {!isDND && (
         <div className="pro-controls" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
           <button className="btn pro-btn pip-btn" onClick={toggleNativePIP}>🖥️ Floating PIP Timer</button>
@@ -338,7 +349,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Hidden elements for Native PIP */}
       <div style={{ position: 'fixed', top: '-1000px', left: '-1000px', opacity: 0, pointerEvents: 'none' }}>
         <canvas ref={canvasRef} width="600" height="400" />
         <video ref={videoRef} muted autoPlay playsInline />
