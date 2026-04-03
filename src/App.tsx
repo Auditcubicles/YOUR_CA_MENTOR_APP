@@ -10,7 +10,15 @@ const NOTES_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1fiRYgdDj8Zkl9s11Sguw03okzS18SMnJ95DIqOnaEZI0LoTLe8BR4x2HWPHmXMQ2iINWdu9M',
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
-const RTP_LINKS = { ...NOTES_LINKS }; 
+const RTP_LINKS = {
+  'Financial Reporting': 'https://drive.google.com/drive/folders/1QuwWAVVp7I_WDHpuk9Jhrlruthpccq-t?usp=drive_link',
+  'AFM': 'https://drive.google.com/drive/folders/1wrhq4le7R67_44puqXpfm_JNNLL3M4Th?usp=drive_link',
+  'AUDIT': 'https://drive.google.com/drive/folders/1RviDhUZj1AvHRAU4Im5W0wPu1dtWaahd?usp=drive_link',
+  'Direct Tax': 'https://drive.google.com/drive/folders/1HyQJdCFfRci__mRrHC6h-1nLR-JMvxKG?usp=drive_link',
+  'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
+  'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
+};
+ 
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const TARGET_CATEGORIES = [
