@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 
-// 📚 FACULTY NOTES LINKS
+// 📚 FACULTY & RTP LINKS
 const NOTES_LINKS = {
   'Financial Reporting': 'https://drive.google.com/drive/folders/1ANLP_7cw7AXKkjWw4Lxp4mw7EuqcoosjuO3aR5SdqVo2oHMaVr5MiozHC662fDdpWfjsB0aP',
   'AFM': 'https://drive.google.com/drive/folders/14Ab9fZoPCcpnlDGc2bU-qTjxl6_PpdsPE_G0ndASdsFrRpPv9M4tYjRN3yPgFouCI7kQtDMq',
@@ -10,16 +10,7 @@ const NOTES_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1fiRYgdDj8Zkl9s11Sguw03okzS18SMnJ95DIqOnaEZI0LoTLe8BR4x2HWPHmXMQ2iINWdu9M',
   'IBS': 'https://drive.google.com/drive/folders/1k5YeEN_1NGPXeeXkD8ziP_QOL3pIkzu4KCISPZbm9zEL8CKsk7I_ClWxvdnAEJS92tgp9WjR'
 };
-
-// 📑 RTP & MTP COMPILATION LINKS
-const RTP_LINKS = {
-  'Financial Reporting': 'https://drive.google.com/drive/folders/1QuwWAVVp7I_WDHpuk9Jhrlruthpccq-t?usp=drive_link',
-  'AFM': 'https://drive.google.com/drive/folders/1wrhq4le7R67_44puqXpfm_JNNLL3M4Th?usp=drive_link',
-  'AUDIT': 'https://drive.google.com/drive/folders/1RviDhUZj1AvHRAU4Im5W0wPu1dtWaahd?usp=drive_link',
-  'Direct Tax': 'https://drive.google.com/drive/folders/1HyQJdCFfRci__mRrHC6h-1nLR-JMvxKG?usp=drive_link',
-  'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
-  'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
-};
+const RTP_LINKS = { ...NOTES_LINKS }; 
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const TARGET_CATEGORIES = [
@@ -140,6 +131,7 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
+  // 🚀 NORMAL SESSION LOG (Completes full timer)
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -148,6 +140,7 @@ export default function App() {
     alert(`Focus Session Logged: ${pomodoroLength} mins!`);
   }, [selectedSubject, pomodoroLength]);
 
+  // 🚀 EARLY STOP & LOG (Calculates partial time)
   const endAndLogEarly = () => {
     const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
     const elapsedMins = Math.floor(timeElapsedSecs / 60);
@@ -251,12 +244,20 @@ export default function App() {
       return data.candidates[0].content.parts[0].text;
     };
 
-    try {
-      const reply = await tryModel('gemini-1.5-flash');
-      setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
-    } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure key is fresh from aistudio.google.com!` }]);
+    const modelsToTry = ['gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    let success = false;
+    let lastError = '';
+
+    for (const model of modelsToTry) {
+      try {
+        const reply = await tryModel(model);
+        setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+        success = true; break;
+      } catch (err) {
+        lastError = err.message;
+      }
     }
+    if (!success) setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: Unable to connect. Last error: ${lastError}. Ensure key is fresh from aistudio.google.com!` }]);
   };
 
   const getWeeklyData = () => {
@@ -274,8 +275,7 @@ export default function App() {
     if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
 
-  // 🚀 MOVED RENDER FUNCTIONS OUTSIDE TO FIX SCROLL JUMP BUG
-  const renderTimerWidget = () => (
+  const TimerWidget = () => (
     <div className={`timer-widget ${isDND ? 'dnd-mode' : ''}`}>
       {isDND && (
         <div className="dnd-header">
@@ -331,9 +331,11 @@ export default function App() {
         </div>
       )}
       
+      {/* 🚀 UPDATED CONTROLS WITH END & LOG */}
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
         
+        {/* Shows "End & Log Early" only if time has elapsed */}
         {(timeLeft < pomodoroLength * 60) && (
           <button className="btn end-log-btn" onClick={endAndLogEarly}>END & LOG</button>
         )}
@@ -350,8 +352,7 @@ export default function App() {
     </div>
   );
 
-  // 🚀 MOVED RENDER FUNCTION OUTSIDE TO FIX SCROLL JUMP BUG
-  const renderTargetList = (tasks) => (
+  const TargetListRenderer = ({ tasks }) => (
     <ul className="task-list scrollable-mini">
       {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
         tasks.map(t => (
@@ -385,7 +386,7 @@ export default function App() {
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
 
-      {isDND && <div className="dnd-overlay">{renderTimerWidget()}</div>}
+      {isDND && <div className="dnd-overlay"><TimerWidget /></div>}
 
       <header className="header">
         <div className="header-left">
@@ -424,7 +425,7 @@ export default function App() {
                   <button key={sub} className={`sub-btn ${selectedSubject === sub ? 'active' : ''}`} onClick={() => setSelectedSubject(sub)}>{sub}</button>
                 ))}
               </div>
-              {!isDND && renderTimerWidget()}
+              {!isDND && <TimerWidget />}
             </div>
 
             <div className="dashboard-right-col">
@@ -433,7 +434,7 @@ export default function App() {
                   <h2>Today's Targets</h2>
                   <button className="btn reset-btn-control" style={{width:'auto', padding:'5px 15px', fontSize:'0.8rem'}} onClick={() => setActiveTab('Targets')}>Add New +</button>
                 </div>
-                {renderTargetList(todayTodos)}
+                <TargetListRenderer tasks={todayTodos} />
               </div>
 
               <div className="today-sessions panel mini-panel">
@@ -476,7 +477,7 @@ export default function App() {
 
           <h3 className="section-title" style={{marginTop: '30px'}}>Your Master To-Do List</h3>
           <div className="full-target-list-wrapper">
-             {renderTargetList(todayTodos)}
+             <TargetListRenderer tasks={todayTodos} />
           </div>
         </div>
       )}
