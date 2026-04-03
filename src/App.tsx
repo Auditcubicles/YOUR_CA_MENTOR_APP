@@ -79,7 +79,7 @@ export default function App() {
   const videoRef = useRef(null);
   const [isDND, setIsDND] = useState(false);
 
-  const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages')) || [{ sender: 'bot', text: 'Hey Niket! CA Sathi is online. How can I help you grind today?' }]);
+  const [chatMessages, setChatMessages] = useState(() => JSON.parse(localStorage.getItem('chatMessages')) || [{ sender: 'bot', text: 'Hi Student! CA Sathi is online. How can I help you grind today?' }]);
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
 
@@ -232,7 +232,7 @@ export default function App() {
 // 🧹 CLEAR CHAT HISTORY
   const clearChatHistory = () => {
     if (window.confirm('Are you sure you want to clear your mentor chat history?')) {
-      setChatMessages([{ sender: 'bot', text: 'Hey Niket! CA Sathi is online. How can I help you grind today?' }]);
+      setChatMessages([{ sender: 'bot', text: 'Hi Student ! CA Sathi is online. How can I help you grind today?' }]);
     }
   };
 
@@ -247,7 +247,7 @@ export default function App() {
       return;
     }
 
-    const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
+    const promptText = `You are a Passionate, Modern, Cool, and a Trustworthy experienced CA Faculty,for a CA Final student. Reply Should range in between 5 to 30 words or more as required. Student says: ${chatInput}`;
 
     const tryModel = async (modelName) => {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
@@ -408,7 +408,7 @@ export default function App() {
           <div className="logo">CA</div>
           <div className="user-greeting">
             <h1>Sathi</h1>
-            <p>DEVELOPED BY NIKET TALWAR</p>
+            <p>DEVELOPED BY NIKET TALWAR (Follow Audit Cubicles on Telegram)</p>
           </div>
         </div>
         <nav className="header-center">
@@ -566,13 +566,13 @@ export default function App() {
         <div className="tab-content fade-in panel mentor-container">
  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h2 style={{ margin: 0 }}>🧠 CA Sathi AI Mentor</h2>
-<button className="btn start chat-send-btn" style={{ width: 'auto', padding: '5px 15px', fontSize: '0.8rem' }} onClick={clearChatHistory}>Clear Chat</button>
+<button className="btn reset-btn-control" style={{ width: 'auto', padding: '5px 15px', fontSize: '0.8rem' }} onClick={clearChatHistory}>Clear Chat</button>
           </div>
           {!apiKey && <div className="api-warning">⚠️ Paste your Gemini API Key in Settings to chat with the AI.</div>}
           <div className="chat-window">{chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}</div>
           <div className="chat-input-row">
             <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Ask a doubt..." className="task-input"/>
-            <button className="btn start focus-btn" onClick={handleSendMessage}>Send</button>
+            <button className="btn start chat-send-btn" onClick={handleSendMessage}>Send</button>
           </div>
         </div>
       )}
