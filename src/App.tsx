@@ -139,7 +139,7 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
-  // 🚀 NORMAL SESSION LOG
+  // 🚀 NORMAL SESSION LOG (Completes full timer)
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -148,7 +148,7 @@ export default function App() {
     alert(`Focus Session Logged: ${pomodoroLength} mins!`);
   }, [selectedSubject, pomodoroLength]);
 
-  // 🚀 EARLY STOP & LOG
+  // 🚀 EARLY STOP & LOG (Calculates partial time)
   const endAndLogEarly = () => {
     const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
     const elapsedMins = Math.floor(timeElapsedSecs / 60);
@@ -229,7 +229,7 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // 🧹 CLEAR CHAT HISTORY
+// 🧹 CLEAR CHAT HISTORY
   const clearChatHistory = () => {
     if (window.confirm('Are you sure you want to clear your mentor chat history?')) {
       setChatMessages([{ sender: 'bot', text: 'Hey Niket! CA Sathi is online. How can I help you grind today?' }]);
@@ -255,25 +255,24 @@ export default function App() {
         body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       });
       const data = await response.json();
-      if (data.error) {
-        if (data.error.code === 429) throw new Error("RATE LIMIT HIT: You have exhausted your free tier API requests for the minute/day. Please wait and try again!");
-        throw new Error(data.error.message);
-      }
+      if (data.error) throw new Error(data.error.message);
       return data.candidates[0].content.parts[0].text;
     };
 
-    try {
+    const modelsToTry = ['gemini-3.1-flash', 'gemini-3.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    let success = false;
+    let lastError = '';
+
+    for (const model of modelsToTry) {
       try {
-        const reply3 = await tryModel('gemini-3.1-flash');
-        setChatMessages([...newMsgs, { sender: 'bot', text: reply3 }]);
-      } catch (err3) {
-        console.warn("Gemini 3.1 not available. Falling back...", err3);
-        const reply2 = await tryModel('gemini-1.5-flash');
-        setChatMessages([...newMsgs, { sender: 'bot', text: reply2 }]);
+        const reply = await tryModel(model);
+        setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+        success = true; break;
+      } catch (err) {
+        lastError = err.message;
       }
-    } catch (finalErr) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${finalErr.message}` }]);
     }
+    if (!success) setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: Unable to connect. Last error: ${lastError}. Ensure key is fresh from aistudio.google.com!` }]);
   };
 
   const getWeeklyData = () => {
@@ -347,6 +346,7 @@ export default function App() {
         </div>
       )}
       
+      {/* 🚀 UPDATED CONTROLS WITH END & LOG */}
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
         
@@ -564,15 +564,15 @@ export default function App() {
       {/* MENTOR */}
       {activeTab === 'Mentor' && (
         <div className="tab-content fade-in panel mentor-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h2 style={{ margin: 0 }}>🧠 CA Sathi AI Mentor</h2>
-            <button className="btn reset-btn-control" style={{ width: 'auto', padding: '5px 15px', fontSize: '0.8rem' }} onClick={clearChatHistory}>Clear Chat</button>
+ <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h2 style={{ margin: 0 }}>🧠 CA Sathi AI Mentor</h2>
+<button className="btn start chat-send-btn" style={{ width: 'auto', padding: '5px 15px', fontSize: '0.8rem' }} onClick={clearChatHistory}>Clear Chat</button>
           </div>
           {!apiKey && <div className="api-warning">⚠️ Paste your Gemini API Key in Settings to chat with the AI.</div>}
           <div className="chat-window">{chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}</div>
           <div className="chat-input-row">
             <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Ask a doubt..." className="task-input"/>
-            <button className="btn start chat-send-btn" onClick={handleSendMessage}>Send</button>
+            <button className="btn start focus-btn" onClick={handleSendMessage}>Send</button>
           </div>
         </div>
       )}
