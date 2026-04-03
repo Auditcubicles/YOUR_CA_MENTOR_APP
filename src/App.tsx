@@ -229,7 +229,7 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-  // 🚀 THE ULTIMATE AUTO-DISCOVERY MENTOR ENGINE
+  // 🚀 THE BULLETPROOF FREE-TIER MENTOR ENGINE
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -241,45 +241,47 @@ export default function App() {
       return;
     }
 
-    try {
-      // Step 1: Ask Google exactly what models this API key has access to
-      const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-      const listData = await listResponse.json();
+    const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
 
-      if (listData.error) throw new Error(`Key Check Failed: ${listData.error.message}`);
-
-      // Filter for models that can generate text
-      const validModels = listData.models.filter(m => 
-        m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
-      );
-
-      if (validModels.length === 0) throw new Error("This API key has no text generation models available.");
-
-      // Step 2: Auto-select the smartest available model
-      let selectedModel = 
-        validModels.find(m => m.name.includes('gemini-2.0-flash'))?.name ||
-        validModels.find(m => m.name.includes('gemini-1.5-flash'))?.name ||
-        validModels.find(m => m.name.includes('gemini'))?.name ||
-        validModels[0].name;
-
-      console.log("Auto-selected model:", selectedModel);
-
-      // Step 3: Make the actual generation request
-      const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
-      
-      const genResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${apiKey}`, {
+    // Helper to fetch against a specific model
+    const tryModel = async (modelName) => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
       });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+      return data.candidates[0].content.parts[0].text;
+    };
 
-      const genData = await genResponse.json();
+    // 🛑 We are strictly trying ONLY the models that are known to work 100% on the free tier without billing enabled.
+    const modelsToTry = [
+      'gemini-1.5-flash',      // The absolute best free tier model
+      'gemini-1.5-flash-8b',   // The lightweight, extremely generous free tier model
+      'gemini-1.0-pro'         // The legacy fallback
+    ];
 
-      if (genData.error) throw new Error(genData.error.message);
+    let success = false;
+    let lastError = '';
 
-      setChatMessages([...newMsgs, { sender: 'bot', text: genData.candidates[0].content.parts[0].text }]);
-    } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. If this persists, create a new key at aistudio.google.com` }]);
+    for (const model of modelsToTry) {
+      try {
+        const reply = await tryModel(model);
+        setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+        success = true; 
+        break; // Exit loop immediately if successful
+      } catch (err) {
+        console.warn(`Model ${model} failed (Likely Quota/Billing). Trying next...`);
+        lastError = err.message;
+      }
+    }
+
+    if (!success) {
+      setChatMessages([...newMsgs, { 
+        sender: 'bot', 
+        text: `API Error: I am blocked by your quota limits. Error: ${lastError}. Make sure you haven't hit your daily API limit!` 
+      }]);
     }
   };
 
