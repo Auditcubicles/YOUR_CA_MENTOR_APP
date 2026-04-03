@@ -20,6 +20,7 @@ const RTP_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
   'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
 };
+
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const TARGET_CATEGORIES = [
@@ -228,6 +229,7 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
+  // 🚀 RESTORED WORKING MENTOR (Locked to gemini-1.5-flash)
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const newMsgs = [...chatMessages, { sender: 'user', text: chatInput }];
@@ -239,23 +241,21 @@ export default function App() {
       return;
     }
 
-    const promptText = `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}`;
-
-    const tryModel = async (modelName) => {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-      });
-      const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
-      return data.candidates[0].content.parts[0].text;
-    };
-
     try {
-      const reply = await tryModel('gemini-1.5-flash');
-      setChatMessages([...newMsgs, { sender: 'bot', text: reply }]);
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: `You are a strict, fast-paced mentor for a CA student named Niket. Reply short and punchy. Niket says: ${chatInput}` }] }] 
+        })
+      });
+      
+      const data = await response.json();
+      
+      if(data.error) throw new Error(data.error.message);
+      setChatMessages([...newMsgs, { sender: 'bot', text: data.candidates[0].content.parts[0].text }]);
     } catch (err) {
-      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Ensure key is fresh from aistudio.google.com!` }]);
+      setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: ${err.message}. Please ensure your API key is valid.` }]);
     }
   };
 
@@ -270,11 +270,11 @@ export default function App() {
     return { days, maxHrs };
   };
   const weeklyData = getWeeklyData();
+
   const achievementsByMonth = unlockedAchievements.reduce((acc, current) => {
     if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
 
-  // 🚀 MOVED RENDER FUNCTIONS OUTSIDE TO FIX SCROLL JUMP BUG
   const renderTimerWidget = () => (
     <div className={`timer-widget ${isDND ? 'dnd-mode' : ''}`}>
       {isDND && (
@@ -350,7 +350,6 @@ export default function App() {
     </div>
   );
 
-  // 🚀 MOVED RENDER FUNCTION OUTSIDE TO FIX SCROLL JUMP BUG
   const renderTargetList = (tasks) => (
     <ul className="task-list scrollable-mini">
       {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
