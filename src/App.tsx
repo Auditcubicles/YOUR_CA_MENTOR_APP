@@ -13,7 +13,6 @@ const NOTES_LINKS = {
 const RTP_LINKS = { ...NOTES_LINKS }; 
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
-// 🎯 NEW: TARGET CATEGORIES
 const TARGET_CATEGORIES = [
   'Concept Revision',
   'Question Bank Solving',
@@ -64,7 +63,6 @@ export default function App() {
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [clockStyle, setClockStyle] = useState('minimal'); 
   
-  // New Structured Target State
   const [targetSub, setTargetSub] = useState(SUBJECTS[0]);
   const [targetCat, setTargetCat] = useState(TARGET_CATEGORIES[0]);
   const [targetTopic, setTargetTopic] = useState('');
@@ -133,13 +131,33 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
+  // 🚀 NORMAL SESSION LOG (Completes full timer)
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
     setIsActive(false);
     setTimeLeft(pomodoroLength * 60);
-    alert('Focus Session Logged!');
+    alert(`Focus Session Logged: ${pomodoroLength} mins!`);
   }, [selectedSubject, pomodoroLength]);
+
+  // 🚀 EARLY STOP & LOG (Calculates partial time)
+  const endAndLogEarly = () => {
+    const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
+    const elapsedMins = Math.floor(timeElapsedSecs / 60);
+
+    if (elapsedMins < 1) {
+      alert("Session too short to log (under 1 minute). Timer reset.");
+      setIsActive(false);
+      setTimeLeft(pomodoroLength * 60);
+      return;
+    }
+
+    const newSession = { id: Date.now(), subject: selectedSubject, duration: elapsedMins, date: new Date().toISOString() };
+    setSessions(s => [newSession, ...s]);
+    setIsActive(false);
+    setTimeLeft(pomodoroLength * 60);
+    alert(`Partial Session Logged: ${elapsedMins} mins!`);
+  };
 
   useEffect(() => {
     let interval = null;
@@ -191,22 +209,12 @@ export default function App() {
     }
   };
 
-  // 🎯 NEW STRUCTURED TARGET HANDLER
   const handleAddStructuredTask = (e) => {
     e.preventDefault();
     if (!targetTopic.trim()) return;
-    
-    const newTask = {
-      id: Date.now(),
-      subject: targetSub,
-      category: targetCat,
-      topic: targetTopic,
-      done: false,
-      date: new Date().toLocaleDateString()
-    };
-    
+    const newTask = { id: Date.now(), subject: targetSub, category: targetCat, topic: targetTopic, done: false, date: new Date().toLocaleDateString() };
     setTodos([newTask, ...todos]);
-    setTargetTopic(''); // Clear input after adding
+    setTargetTopic(''); 
   };
 
   const toggleTodo = (id) => setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -323,8 +331,15 @@ export default function App() {
         </div>
       )}
       
+      {/* 🚀 UPDATED CONTROLS WITH END & LOG */}
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
+        
+        {/* Shows "End & Log Early" only if time has elapsed */}
+        {(timeLeft < pomodoroLength * 60) && (
+          <button className="btn end-log-btn" onClick={endAndLogEarly}>END & LOG</button>
+        )}
+        
         <button className="btn reset-btn-control" onClick={resetTimer}>RESET</button>
       </div>
 
@@ -337,7 +352,6 @@ export default function App() {
     </div>
   );
 
-  // 🎯 Reusable Component for Rendering the Target List
   const TargetListRenderer = ({ tasks }) => (
     <ul className="task-list scrollable-mini">
       {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
@@ -355,7 +369,7 @@ export default function App() {
                   <span className="task-text-main">{t.topic}</span>
                 </>
               ) : (
-                <span className="task-text-main">{t.text}</span> // Fallback for old simple tasks
+                <span className="task-text-main">{t.text}</span>
               )}
             </div>
           </div>
@@ -383,7 +397,6 @@ export default function App() {
           </div>
         </div>
         <nav className="header-center">
-          {/* ✨ Added 'Targets' explicitly to the Nav menu */}
           {['Dashboard', 'Targets', 'Achievements', 'Analytics', 'Mentor', 'Materials', 'Settings'].map(tab => (
             <button key={tab} className={`nav-link ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</button>
           ))}
@@ -441,7 +454,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 🎯 NEW TAB: TARGETS PLANNER */}
+      {/* TARGETS PLANNER */}
       {activeTab === 'Targets' && (
         <div className="tab-content fade-in panel">
           <h2>Daily Target Planner</h2>
