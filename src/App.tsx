@@ -572,7 +572,7 @@ export default function App() {
           <div className="chat-window">{chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}</div>
           <div className="chat-input-row">
             <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Ask a doubt..." className="task-input"/>
-            <button className="btn start focus-btn" onClick={handleSendMessage}>Send</button>
+            <button className="btn start chat-send-btn" onClick={handleSendMessage}>Send</button>
           </div>
         </div>
       )}
