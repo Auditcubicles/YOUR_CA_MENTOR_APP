@@ -18,15 +18,15 @@ const RTP_LINKS = {
   'IDT': 'https://drive.google.com/drive/folders/1v-36rQLlFOixBjLM4b-e-pfglu0n9FNX?usp=drive_link',
   'IBS': 'https://drive.google.com/drive/folders/12lZj9JlvkffriT5Rq_1oCV_IyIFjoOKo?usp=drive_link'
 };
- 
+
 const SUBJECTS = Object.keys(NOTES_LINKS);
 
 const TARGET_CATEGORIES = [
   'Concept Revision',
   'Question Bank Solving',
   'Mock Test Paper',
-  'YT Revision watch',
-  'Class Watching'
+  'YT Revision',
+  'Lecture'
 ];
 
 const StatsCard = ({ icon, title, value, subtext, type }) => (
