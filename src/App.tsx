@@ -55,6 +55,34 @@ const ACHIEVEMENTS_DB = [
   { id: 'audit_master', icon: '🕵️', title: 'Audit Specialist', desc: 'Log 20 hours in Audit', target: 20, type: 'subject', sub: 'AUDIT' }
 ];
 
+// 🚀 FIX: Moved TargetListRenderer OUTSIDE the App component so it doesn't remount every second!
+const TargetListRenderer = ({ tasks, toggleTodo, deleteTodo }) => (
+  <ul className="task-list scrollable-mini">
+    {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
+      tasks.map(t => (
+      <li key={t.id} className={`task-item ${t.done ? 'completed' : ''}`}>
+        <div className="task-left" onClick={() => toggleTodo(t.id)}>
+          <div className={`checkbox ${t.done ? 'checked' : ''}`}></div> 
+          <div className="task-content-wrapper">
+            {t.subject && t.category ? (
+              <>
+                <div className="task-badges">
+                  <span className="task-badge badge-sub">{t.subject}</span>
+                  <span className="task-badge badge-cat">{t.category}</span>
+                </div>
+                <span className="task-text-main">{t.topic}</span>
+              </>
+            ) : (
+              <span className="task-text-main">{t.text}</span>
+            )}
+          </div>
+        </div>
+        <button className="del-btn" onClick={() => deleteTodo(t.id)}>×</button>
+      </li>
+    ))}
+  </ul>
+);
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [sessions, setSessions] = useState(() => JSON.parse(localStorage.getItem('sessions')) || []);
@@ -139,7 +167,6 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
-  // 🚀 NORMAL SESSION LOG (Completes full timer)
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -148,7 +175,6 @@ export default function App() {
     alert(`Focus Session Logged: ${pomodoroLength} mins!`);
   }, [selectedSubject, pomodoroLength]);
 
-  // 🚀 EARLY STOP & LOG (Calculates partial time)
   const endAndLogEarly = () => {
     const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
     const elapsedMins = Math.floor(timeElapsedSecs / 60);
@@ -229,7 +255,6 @@ export default function App() {
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
   const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
 
-// 🧹 CLEAR CHAT HISTORY
   const clearChatHistory = () => {
     if (window.confirm('Are you sure you want to clear your mentor chat history?')) {
       setChatMessages([{ sender: 'bot', text: 'Hi Student ! CA Sathi is online. How can I help you grind today?' }]);
@@ -247,7 +272,7 @@ export default function App() {
       return;
     }
 
-    const promptText = `You are a Passionate, Modern,and a Trustworthy experienced CA Faculty, Your motive is to solve the doubts of the students in by providing them solutions of queries as they required and you should ensure that query is resolved,for a CA Final student. Reply should be minimum in 10 words and maximum in 60 words and properly structured as per the query. Student says: ${chatInput}`;
+    const promptText = `You are a Passionate, Modern,and a Trustworthy experienced CA Faculty, Your motive is to solve the doubts of the students in by providing them solutions of queries as they required and you should ensure that query is resolved,for a CA Final student. Reply should be medium and understandable as per the query. Student says: ${chatInput}`;
 
     const tryModel = async (modelName) => {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
@@ -346,11 +371,9 @@ export default function App() {
         </div>
       )}
       
-      {/* 🚀 UPDATED CONTROLS WITH END & LOG */}
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
         
-        {/* Shows "End & Log Early" only if time has elapsed */}
         {(timeLeft < pomodoroLength * 60) && (
           <button className="btn end-log-btn" onClick={endAndLogEarly}>END & LOG</button>
         )}
@@ -365,33 +388,6 @@ export default function App() {
         </div>
       )}
     </div>
-  );
-
-  const TargetListRenderer = ({ tasks }) => (
-    <ul className="task-list scrollable-mini">
-      {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
-        tasks.map(t => (
-        <li key={t.id} className={`task-item ${t.done ? 'completed' : ''}`}>
-          <div className="task-left" onClick={() => toggleTodo(t.id)}>
-            <div className={`checkbox ${t.done ? 'checked' : ''}`}></div> 
-            <div className="task-content-wrapper">
-              {t.subject && t.category ? (
-                <>
-                  <div className="task-badges">
-                    <span className="task-badge badge-sub">{t.subject}</span>
-                    <span className="task-badge badge-cat">{t.category}</span>
-                  </div>
-                  <span className="task-text-main">{t.topic}</span>
-                </>
-              ) : (
-                <span className="task-text-main">{t.text}</span>
-              )}
-            </div>
-          </div>
-          <button className="del-btn" onClick={() => deleteTodo(t.id)}>×</button>
-        </li>
-      ))}
-    </ul>
   );
 
   return (
@@ -449,7 +445,8 @@ export default function App() {
                   <h2>Today's Targets</h2>
                   <button className="btn reset-btn-control" style={{width:'auto', padding:'5px 15px', fontSize:'0.8rem'}} onClick={() => setActiveTab('Targets')}>Add New +</button>
                 </div>
-                <TargetListRenderer tasks={todayTodos} />
+                {/* 🚀 FIX: Passed props perfectly down to the stable renderer */}
+                <TargetListRenderer tasks={todayTodos} toggleTodo={toggleTodo} deleteTodo={deleteTodo} />
               </div>
 
               <div className="today-sessions panel mini-panel">
@@ -492,7 +489,8 @@ export default function App() {
 
           <h3 className="section-title" style={{marginTop: '30px'}}>Your Master To-Do List</h3>
           <div className="full-target-list-wrapper">
-             <TargetListRenderer tasks={todayTodos} />
+             {/* 🚀 FIX: Passed props perfectly down to the stable renderer */}
+             <TargetListRenderer tasks={todayTodos} toggleTodo={toggleTodo} deleteTodo={deleteTodo} />
           </div>
         </div>
       )}
