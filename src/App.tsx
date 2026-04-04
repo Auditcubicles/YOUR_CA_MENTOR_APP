@@ -409,7 +409,7 @@ export default function App() {
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
 
-      {isDND && <div className="dnd-overlay"><TimerWidget /></div>}
+      {isDND && <div className="dnd-overlay">{TimerWidget()}</div>}
 
       <header className="header">
         <div className="header-left">
@@ -464,7 +464,7 @@ export default function App() {
                   <button key={sub} className={`sub-btn ${selectedSubject === sub ? 'active' : ''}`} onClick={() => setSelectedSubject(sub)}>{sub}</button>
                 ))}
               </div>
-              {!isDND && <TimerWidget />}
+              {!isDND && TimerWidget()}
             </div>
 
             <div className="dashboard-right-col">
