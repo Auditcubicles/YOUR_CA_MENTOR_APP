@@ -111,6 +111,9 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
 
+  // 🕰️ NEW: LIVE CLOCK STATE
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
   useEffect(() => localStorage.setItem('sessions', JSON.stringify(sessions)), [sessions]);
   useEffect(() => localStorage.setItem('todos', JSON.stringify(todos)), [todos]);
   useEffect(() => localStorage.setItem('dailyGoal', dailyGoal), [dailyGoal]);
@@ -127,6 +130,12 @@ export default function App() {
   const totalHoursLogged = (sessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(0);
   const daysRemaining = Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
   const uniqueSubjectsToday = new Set(todaySessions.map(s => s.subject)).size;
+
+  // 🕰️ NEW: CLOCK TICK EFFECT
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let newUnlocks = [...unlockedAchievements];
@@ -167,6 +176,7 @@ export default function App() {
     }
   }, [sessions, dailyGoal, todayHours]);
 
+  // 🚀 NORMAL SESSION LOG (Completes full timer)
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -175,6 +185,7 @@ export default function App() {
     alert(`Focus Session Logged: ${pomodoroLength} mins!`);
   }, [selectedSubject, pomodoroLength]);
 
+  // 🚀 EARLY STOP & LOG (Calculates partial time)
   const endAndLogEarly = () => {
     const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
     const elapsedMins = Math.floor(timeElapsedSecs / 60);
@@ -374,6 +385,7 @@ export default function App() {
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
         
+        {/* Shows "End & Log Early" only if time has elapsed */}
         {(timeLeft < pomodoroLength * 60) && (
           <button className="btn end-log-btn" onClick={endAndLogEarly}>END & LOG</button>
         )}
@@ -417,6 +429,22 @@ export default function App() {
       {/* DASHBOARD */}
       {activeTab === 'Dashboard' && (
         <div className="tab-content fade-in">
+          
+          {/* 🕰️ NEW LIVE CLOCK HEADER */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', backgroundColor: '#161b22', padding: '15px 25px', borderRadius: '12px', border: '1px solid #30363d' }}>
+            <div>
+              <h2 style={{ margin: 0, color: '#f0f6fc', fontSize: '1.8rem', letterSpacing: '1px' }}>
+                {currentDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </h2>
+              <p style={{ margin: '5px 0 0 0', color: '#38bdf8', fontSize: '0.9rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {currentDateTime.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '2rem' }}>⏳</span>
+            </div>
+          </div>
+
           <div className="stats-dashboard">
             <StatsCard icon="📅" title="EXAM COUNTDOWN" value={daysRemaining} subtext="days remaining" type="red" />
             <StatsCard icon="⏱️" title="TODAY'S STUDY" value={`${todayHours} / ${dailyGoal}h`} subtext={isBehind ? "Behind schedule" : "Target Hit!"} type={isBehind ? "red" : "green"} />
@@ -562,9 +590,9 @@ export default function App() {
       {/* MENTOR */}
       {activeTab === 'Mentor' && (
         <div className="tab-content fade-in panel mentor-container">
- <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h2 style={{ margin: 0 }}>🧠 CA Sathi AI Mentor</h2>
-<button className="btn reset-btn-control" style={{ width: 'auto', padding: '5px 15px', fontSize: '0.8rem' }} onClick={clearChatHistory}>Clear Chat</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h2 style={{ margin: 0 }}>🧠 CA Sathi AI Mentor</h2>
+            <button className="btn reset-btn-control" style={{ width: 'auto', padding: '5px 15px', fontSize: '0.8rem' }} onClick={clearChatHistory}>Clear Chat</button>
           </div>
           {!apiKey && <div className="api-warning">⚠️ Paste your Gemini API Key in Settings to chat with the AI.</div>}
           <div className="chat-window">{chatMessages.map((msg, i) => (<div key={i} className={`chat-bubble ${msg.sender}`}>{msg.text}</div>))}</div>
