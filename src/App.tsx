@@ -107,6 +107,9 @@ export default function App() {
   const [streakData, setStreakData] = useState(() => JSON.parse(localStorage.getItem('streakData')) || { count: 0, lastLogin: null, targetHitToday: false });
   const [unlockedAchievements, setUnlockedAchievements] = useState(() => JSON.parse(localStorage.getItem('unlockedAchievements')) || []);
 
+  // --- NEW: STUDENT NAME STATE ---
+  const [studentName, setStudentName] = useState(() => localStorage.getItem('studentName') || '');
+
   // 🚀 FIX: NEW RESET TIME STATE
   const [resetTime, setResetTime] = useState(() => localStorage.getItem('resetTime') || '00:00');
 
@@ -141,6 +144,7 @@ export default function App() {
   useEffect(() => localStorage.setItem('geminiApiKey', apiKey), [apiKey]);
   useEffect(() => localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements)), [unlockedAchievements]);
   useEffect(() => localStorage.setItem('resetTime', resetTime), [resetTime]);
+  useEffect(() => localStorage.setItem('studentName', studentName), [studentName]); // Save name to memory
 
   // 🚀 FIX: CALCULATING "TODAY" BASED ON CUSTOM RESET TIME
   const todayLogicalStr = getLogicalDateStr(new Date(), resetTime);
@@ -461,8 +465,9 @@ export default function App() {
         <div className="header-left">
           <div className="logo">CA</div>
           <div className="user-greeting">
-            <h1>Sathi</h1>
-            <p>DEVELOPED BY NIKET TALWAR</p>
+            {/* 🚀 FIX: DYNAMIC PERSONALIZED NAME */}
+            <h1>{studentName.trim() ? studentName : 'Sathi'}</h1>
+            <p>APP DEVELOPED BY NIKET TALWAR</p>
           </div>
         </div>
         <nav className="header-center">
@@ -571,8 +576,14 @@ export default function App() {
         <div className="tab-content fade-in panel">
           <h2>Trophy Cabinet</h2>
           <div className="trophy-grid">
-            {ACHIEVEMENTS_DB.map(ach => {
-              // 🚀 FIX: DYNAMIC CHECK FOR DAILY MEDALS
+            {/* 🚀 FIX: SORTING UNLOCKED ACHIEVEMENTS TO THE TOP */}
+            {[...ACHIEVEMENTS_DB].sort((a, b) => {
+              const aUnlocked = a.type === 'daily' ? todayHours >= a.target : unlockedAchievements.some(u => u.id === a.id);
+              const bUnlocked = b.type === 'daily' ? todayHours >= b.target : unlockedAchievements.some(u => u.id === b.id);
+              if (aUnlocked && !bUnlocked) return -1;
+              if (!aUnlocked && bUnlocked) return 1;
+              return 0;
+            }).map(ach => {
               const isUnlocked = ach.type === 'daily' 
                 ? todayHours >= ach.target 
                 : unlockedAchievements.some(u => u.id === ach.id);
@@ -665,6 +676,13 @@ export default function App() {
         <div className="tab-content fade-in panel">
           <h2>App Settings</h2>
           
+          {/* 🚀 FIX: NEW NAME FIELD */}
+          <div className="setting-input-group">
+            <label>Your Name:</label>
+            <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="e.g. Rahul" />
+            <p className="hint">This name will appear on your Dashboard header.</p>
+          </div>
+
           <div className="setting-input-group">
             <label>Daily Reset Time:</label>
             <input type="time" value={resetTime} onChange={(e) => setResetTime(e.target.value)} />
