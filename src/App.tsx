@@ -37,6 +37,7 @@ const StatsCard = ({ icon, title, value, subtext, type }) => (
   </div>
 );
 
+// 🚀 FIX: Added additional subjects & separated daily vs permanent
 const ACHIEVEMENTS_DB = [
   { id: 'daily_3', icon: '🥉', title: 'Bronze Grind', desc: 'Study 3+ hours in a day', target: 3, type: 'daily' },
   { id: 'daily_6', icon: '🥈', title: 'Silver Hustle', desc: 'Study 6+ hours in a day', target: 6, type: 'daily' },
@@ -52,10 +53,13 @@ const ACHIEVEMENTS_DB = [
   { id: 'total_500', icon: '🌌', title: 'CA Legend', desc: 'Log 500 total hours', target: 500, type: 'total' },
   { id: 'polymath', icon: '🧠', title: 'Polymath', desc: 'Study 4 different subjects in one day', target: 4, type: 'variety' },
   { id: 'fr_master', icon: '📘', title: 'FR Specialist', desc: 'Log 20 hours in Financial Reporting', target: 20, type: 'subject', sub: 'Financial Reporting' },
-  { id: 'audit_master', icon: '🕵️', title: 'Audit Specialist', desc: 'Log 20 hours in Audit', target: 20, type: 'subject', sub: 'AUDIT' }
+  { id: 'audit_master', icon: '🕵️', title: 'Audit Specialist', desc: 'Log 20 hours in Audit', target: 20, type: 'subject', sub: 'AUDIT' },
+  { id: 'afm_master', icon: '📈', title: 'AFM Specialist', desc: 'Log 20 hours in AFM', target: 20, type: 'subject', sub: 'AFM' },
+  { id: 'dt_master', icon: '💰', title: 'DT Specialist', desc: 'Log 20 hours in Direct Tax', target: 20, type: 'subject', sub: 'Direct Tax' },
+  { id: 'idt_master', icon: '🏛️', title: 'IDT Specialist', desc: 'Log 20 hours in IDT', target: 20, type: 'subject', sub: 'IDT' },
+  { id: 'ibs_master', icon: '💼', title: 'IBS Specialist', desc: 'Log 20 hours in IBS', target: 20, type: 'subject', sub: 'IBS' }
 ];
 
-// 🚀 FIX: Moved TargetListRenderer OUTSIDE the App component so it doesn't remount every second!
 const TargetListRenderer = ({ tasks, toggleTodo, deleteTodo }) => (
   <ul className="task-list scrollable-mini">
     {tasks.length === 0 ? <p className="empty-state">No targets set.</p> : 
@@ -83,6 +87,17 @@ const TargetListRenderer = ({ tasks, toggleTodo, deleteTodo }) => (
   </ul>
 );
 
+// 🚀 FIX: CUSTOM RESET LOGIC HELPER
+const getLogicalDateStr = (dateObj, resetTimeStr) => {
+  const d = new Date(dateObj);
+  const [resetHour, resetMinute] = (resetTimeStr || '00:00').split(':').map(Number);
+  
+  if (d.getHours() < resetHour || (d.getHours() === resetHour && d.getMinutes() < resetMinute)) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d.toLocaleDateString();
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [sessions, setSessions] = useState(() => JSON.parse(localStorage.getItem('sessions')) || []);
@@ -91,6 +106,9 @@ export default function App() {
   const [examDate, setExamDate] = useState(() => localStorage.getItem('examDate') || '2026-05-01');
   const [streakData, setStreakData] = useState(() => JSON.parse(localStorage.getItem('streakData')) || { count: 0, lastLogin: null, targetHitToday: false });
   const [unlockedAchievements, setUnlockedAchievements] = useState(() => JSON.parse(localStorage.getItem('unlockedAchievements')) || []);
+
+  // 🚀 FIX: NEW RESET TIME STATE
+  const [resetTime, setResetTime] = useState(() => localStorage.getItem('resetTime') || '00:00');
 
   const [pomodoroLength, setPomodoroLength] = useState(25);
   const [customMins, setCustomMins] = useState('');
@@ -111,7 +129,7 @@ export default function App() {
   const [chatInput, setChatInput] = useState('');
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('geminiApiKey') || '');
 
-  // 🕰️ NEW: LIVE CLOCK STATE
+  // 🕰️ LIVE CLOCK STATE
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => localStorage.setItem('sessions', JSON.stringify(sessions)), [sessions]);
@@ -122,28 +140,33 @@ export default function App() {
   useEffect(() => localStorage.setItem('chatMessages', JSON.stringify(chatMessages)), [chatMessages]);
   useEffect(() => localStorage.setItem('geminiApiKey', apiKey), [apiKey]);
   useEffect(() => localStorage.setItem('unlockedAchievements', JSON.stringify(unlockedAchievements)), [unlockedAchievements]);
+  useEffect(() => localStorage.setItem('resetTime', resetTime), [resetTime]);
 
-  const todayStr = new Date().toLocaleDateString();
-  const todaySessions = sessions.filter(s => new Date(s.date).toLocaleDateString() === todayStr);
+  // 🚀 FIX: CALCULATING "TODAY" BASED ON CUSTOM RESET TIME
+  const todayLogicalStr = getLogicalDateStr(new Date(), resetTime);
+  const todaySessions = sessions.filter(s => getLogicalDateStr(s.date, resetTime) === todayLogicalStr);
   const todayHours = (todaySessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(1);
   const isBehind = todayHours < dailyGoal;
   const totalHoursLogged = (sessions.reduce((sum, s) => sum + s.duration, 0) / 60).toFixed(0);
   const daysRemaining = Math.max(0, Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)));
   const uniqueSubjectsToday = new Set(todaySessions.map(s => s.subject)).size;
 
-  // 🕰️ NEW: CLOCK TICK EFFECT
+  // 🕰️ CLOCK TICK EFFECT
   useEffect(() => {
     const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // 🚀 FIX: PREVENT DAILY MEDALS FROM SAVING TO PERMANENT UNLOCKS
   useEffect(() => {
     let newUnlocks = [...unlockedAchievements];
     let changed = false;
     ACHIEVEMENTS_DB.forEach(ach => {
+      // Skip 'daily' achievements from saving permanently into localStorage
+      if (ach.type === 'daily') return;
+
       if (!newUnlocks.some(u => u.id === ach.id)) {
         let earned = false;
-        if (ach.type === 'daily' && todayHours >= ach.target) earned = true;
         if (ach.type === 'streak' && streakData.count >= ach.target) earned = true;
         if (ach.type === 'total' && totalHoursLogged >= ach.target) earned = true;
         if (ach.type === 'variety' && uniqueSubjectsToday >= ach.target) earned = true;
@@ -159,24 +182,38 @@ export default function App() {
       }
     });
     if (changed) setUnlockedAchievements(newUnlocks);
-  }, [sessions, todayHours, totalHoursLogged, streakData.count, uniqueSubjectsToday]);
+  }, [sessions, totalHoursLogged, streakData.count, uniqueSubjectsToday]);
 
+  // STREAK LOGIC UPDATE (Using logical date)
   useEffect(() => {
-    const today = new Date().toLocaleDateString();
     let currentData = { ...streakData };
-    if (currentData.lastLogin !== today) {
-      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-      if (currentData.lastLogin === yesterday.toLocaleDateString() && currentData.targetHitToday) { } 
+    if (currentData.lastLogin !== todayLogicalStr) {
+      
+      const getLogicalYesterdayStr = () => {
+        const d = new Date();
+        const [resetHour, resetMinute] = (resetTime || '00:00').split(':').map(Number);
+        if (d.getHours() < resetHour || (d.getHours() === resetHour && d.getMinutes() < resetMinute)) {
+          d.setDate(d.getDate() - 1);
+        }
+        d.setDate(d.getDate() - 1);
+        return d.toLocaleDateString();
+      };
+      
+      const yesterdayLogicalStr = getLogicalYesterdayStr();
+      
+      if (currentData.lastLogin === yesterdayLogicalStr && currentData.targetHitToday) { } 
       else if (currentData.lastLogin !== null) { currentData.count = 0; }
-      currentData.lastLogin = today; currentData.targetHitToday = false;
+      
+      currentData.lastLogin = todayLogicalStr; 
+      currentData.targetHitToday = false;
       setStreakData(currentData);
     }
+    
     if (todayHours >= dailyGoal && !currentData.targetHitToday) {
       setStreakData({ ...currentData, targetHitToday: true, count: currentData.count + 1 });
     }
-  }, [sessions, dailyGoal, todayHours]);
+  }, [sessions, dailyGoal, todayHours, resetTime]);
 
-  // 🚀 NORMAL SESSION LOG (Completes full timer)
   const logSession = useCallback(() => {
     const newSession = { id: Date.now(), subject: selectedSubject, duration: pomodoroLength, date: new Date().toISOString() };
     setSessions(s => [newSession, ...s]);
@@ -185,7 +222,6 @@ export default function App() {
     alert(`Focus Session Logged: ${pomodoroLength} mins!`);
   }, [selectedSubject, pomodoroLength]);
 
-  // 🚀 EARLY STOP & LOG (Calculates partial time)
   const endAndLogEarly = () => {
     const timeElapsedSecs = (pomodoroLength * 60) - timeLeft;
     const elapsedMins = Math.floor(timeElapsedSecs / 60);
@@ -257,14 +293,16 @@ export default function App() {
   const handleAddStructuredTask = (e) => {
     e.preventDefault();
     if (!targetTopic.trim()) return;
-    const newTask = { id: Date.now(), subject: targetSub, category: targetCat, topic: targetTopic, done: false, date: new Date().toLocaleDateString() };
+    const newTask = { id: Date.now(), subject: targetSub, category: targetCat, topic: targetTopic, done: false, date: todayLogicalStr };
     setTodos([newTask, ...todos]);
     setTargetTopic(''); 
   };
 
   const toggleTodo = (id) => setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
   const deleteTodo = (id) => setTodos(todos.filter(t => t.id !== id));
-  const todayTodos = todos.filter(t => t.date === new Date().toLocaleDateString());
+  
+  // Update To-Do filter to logical date
+  const todayTodos = todos.filter(t => t.date === todayLogicalStr);
 
   const clearChatHistory = () => {
     if (window.confirm('Are you sure you want to clear your mentor chat history?')) {
@@ -311,17 +349,26 @@ export default function App() {
     if (!success) setChatMessages([...newMsgs, { sender: 'bot', text: `API Error: Unable to connect. Last error: ${lastError}. Ensure key is fresh from aistudio.google.com!` }]);
   };
 
+  // --- UPDATE: WEEKLY DATA CALCULATES USING LOGICAL DATES ---
   const getWeeklyData = () => {
     const days = []; let maxHrs = 1;
     for(let i=6; i>=0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i); const dateStr = d.toLocaleDateString();
-      const hrs = sessions.filter(s => new Date(s.date).toLocaleDateString() === dateStr).reduce((sum, s) => sum + s.duration, 0) / 60;
+      const d = new Date();
+      const [resetHour, resetMinute] = (resetTime || '00:00').split(':').map(Number);
+      if (d.getHours() < resetHour || (d.getHours() === resetHour && d.getMinutes() < resetMinute)) {
+        d.setDate(d.getDate() - 1);
+      }
+      d.setDate(d.getDate() - i);
+      const targetDateStr = d.toLocaleDateString();
+
+      const hrs = sessions.filter(s => getLogicalDateStr(s.date, resetTime) === targetDateStr).reduce((sum, s) => sum + s.duration, 0) / 60;
       if (hrs > maxHrs) maxHrs = hrs;
       days.push({ name: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: hrs.toFixed(1) });
     }
     return { days, maxHrs };
   };
   const weeklyData = getWeeklyData();
+  
   const achievementsByMonth = unlockedAchievements.reduce((acc, current) => {
     if (!acc[current.month]) acc[current.month] = []; acc[current.month].push(current); return acc;
   }, {});
@@ -385,7 +432,6 @@ export default function App() {
       <div className="timer-controls-row">
         <button className={`btn ${isActive ? 'pause' : 'start'} focus-btn`} onClick={toggleTimer}>{isActive ? 'PAUSE' : 'START'}</button>
         
-        {/* Shows "End & Log Early" only if time has elapsed */}
         {(timeLeft < pomodoroLength * 60) && (
           <button className="btn end-log-btn" onClick={endAndLogEarly}>END & LOG</button>
         )}
@@ -430,7 +476,6 @@ export default function App() {
       {activeTab === 'Dashboard' && (
         <div className="tab-content fade-in">
           
-          {/* 🕰️ NEW LIVE CLOCK HEADER */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', backgroundColor: '#161b22', padding: '15px 25px', borderRadius: '12px', border: '1px solid #30363d' }}>
             <div>
               <h2 style={{ margin: 0, color: '#f0f6fc', fontSize: '1.8rem', letterSpacing: '1px' }}>
@@ -473,7 +518,6 @@ export default function App() {
                   <h2>Today's Targets</h2>
                   <button className="btn reset-btn-control" style={{width:'auto', padding:'5px 15px', fontSize:'0.8rem'}} onClick={() => setActiveTab('Targets')}>Add New +</button>
                 </div>
-                {/* 🚀 FIX: Passed props perfectly down to the stable renderer */}
                 <TargetListRenderer tasks={todayTodos} toggleTodo={toggleTodo} deleteTodo={deleteTodo} />
               </div>
 
@@ -517,7 +561,6 @@ export default function App() {
 
           <h3 className="section-title" style={{marginTop: '30px'}}>Your Master To-Do List</h3>
           <div className="full-target-list-wrapper">
-             {/* 🚀 FIX: Passed props perfectly down to the stable renderer */}
              <TargetListRenderer tasks={todayTodos} toggleTodo={toggleTodo} deleteTodo={deleteTodo} />
           </div>
         </div>
@@ -529,7 +572,11 @@ export default function App() {
           <h2>Trophy Cabinet</h2>
           <div className="trophy-grid">
             {ACHIEVEMENTS_DB.map(ach => {
-              const isUnlocked = unlockedAchievements.some(u => u.id === ach.id);
+              // 🚀 FIX: DYNAMIC CHECK FOR DAILY MEDALS
+              const isUnlocked = ach.type === 'daily' 
+                ? todayHours >= ach.target 
+                : unlockedAchievements.some(u => u.id === ach.id);
+                
               return (
                 <div key={ach.id} className={`trophy-card ${isUnlocked ? 'unlocked gold' : 'locked'}`}>
                   <div className="trophy-icon">{ach.icon}</div>
@@ -617,6 +664,13 @@ export default function App() {
       {activeTab === 'Settings' && (
         <div className="tab-content fade-in panel">
           <h2>App Settings</h2>
+          
+          <div className="setting-input-group">
+            <label>Daily Reset Time:</label>
+            <input type="time" value={resetTime} onChange={(e) => setResetTime(e.target.value)} />
+            <p className="hint">Set your day's end time. Example: 03:00 AM means study hours logged before 3 AM will count for yesterday's target.</p>
+          </div>
+
           <div className="setting-input-group"><label>Gemini API Key:</label><input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /><p className="hint">Required for AI Mentor. Get it free from Google AI Studio.</p></div>
           <div className="setting-input-group"><label>Exam Date:</label><input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} /></div>
           <div className="setting-input-group"><label>Daily Goal (Hours):</label><input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(e.target.value)} /></div>
